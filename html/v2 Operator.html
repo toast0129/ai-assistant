@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>ARIA // PERSONAL OS</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============ RESET / TOKENS ============ */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#F2F0ED; --paper:#FFFFFF; --ink:#0A0A0A; --hot:#E8005A;
+    --hair:rgba(10,10,10,.18); --hair-st:rgba(10,10,10,.55);
+    --display:"Bebas Neue",sans-serif;
+    --mono:"DM Mono",ui-monospace,monospace;
+    --tc:"Noto Sans TC",sans-serif;
+  }
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--tc);font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--hot);color:#fff}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:transparent}
+  a{color:inherit;text-decoration:none}
+  img,svg{display:block}
+
+  /* ============ GRAIN + SCRATCH OVERLAY ============ */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.32'/></svg>");
+    mix-blend-mode:multiply;opacity:.6;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:201;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><g stroke='%230A0A0A' stroke-width='0.6' opacity='0.45' fill='none'><path d='M0,40 L800,38'/><path d='M0,180 L800,177'/><path d='M0,310 L800,308'/><path d='M0,460 L800,463'/><path d='M120,0 L122,600'/><path d='M520,0 L518,600'/><path d='M740,0 L742,600'/></g><g fill='%230A0A0A' opacity='0.35'><circle cx='80' cy='120' r='1'/><circle cx='240' cy='280' r='1.2'/><circle cx='460' cy='80' r='0.8'/><circle cx='660' cy='420' r='1'/><circle cx='320' cy='520' r='1.2'/></g></svg>");
+    mix-blend-mode:multiply;opacity:.16;background-size:800px 600px;
+  }
+
+  .frame{width:1440px;margin:0 auto;padding:0 0 60px;position:relative}
+
+  /* ============ TYPE UTIL ============ */
+  .mono{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+  .mono-xs{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase}
+
+  /* ============ CHIPS ============ */
+  .chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px 4px;line-height:1}
+  .chip.ink{background:var(--ink);color:#fff}
+  .chip.hot{background:var(--hot);color:#fff}
+  .chip.outline{border:.5px solid var(--ink);padding:4px 9px}
+  .chip-stack{display:inline-flex;flex-direction:column;line-height:1.1}
+  .chip-stack .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:4px 8px;text-transform:uppercase}
+  .chip-stack .b{background:var(--hot);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:4px 8px;text-transform:uppercase}
+
+  /* ============ TOP META ============ */
+  .meta{display:flex;justify-content:space-between;align-items:center;padding:14px 40px;border-bottom:.5px solid var(--hair-st)}
+  .meta .dot{display:inline-block;width:6px;height:6px;background:var(--hot);margin-right:8px;vertical-align:1px;animation:blink 1.4s steps(2) infinite}
+  @keyframes blink{50%{opacity:.1}}
+  .meta-l,.meta-r{display:flex;gap:22px;align-items:center}
+
+  /* ============ HUD STRIP ============ */
+  .hud{display:flex;justify-content:space-between;align-items:center;padding:14px 40px 18px;gap:24px}
+  .hud-l{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .hud-stat{background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;display:inline-flex;align-items:stretch;line-height:1;font-weight:500}
+  .hud-stat .k{padding:7px 9px 6px;display:flex;align-items:center}
+  .hud-stat .v{padding:7px 11px 6px;background:#fff;color:var(--ink);font-weight:500;display:flex;align-items:center}
+  .hud-stat.hot{background:var(--hot)}
+  .hud-stat.hot .v{color:var(--hot)}
+  .hud-r{display:flex;align-items:center;gap:10px}
+  .hud-r .ico-row{display:flex}
+  .hud-r .ico{background:var(--ink);color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;border-right:.5px solid #2a2a2a}
+  .hud-r .ico:last-child{border-right:0}
+  .hud-r .pl-tag{display:flex;flex-direction:column;line-height:1}
+  .hud-r .pl-tag .n{font-family:var(--display);font-size:22px;letter-spacing:.04em;line-height:.95}
+  .hud-r .pl-tag .lv{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--hot);font-weight:500;margin-top:2px}
+
+  /* ============ HERO ============ */
+  .hero{position:relative;padding:30px 40px 40px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--paper)}
+  .hero-grid{display:grid;grid-template-columns:0.72fr 1fr 1.1fr;gap:0;align-items:stretch;position:relative}
+
+  /* corner crosshairs */
+  .ch{position:absolute;width:18px;height:18px;pointer-events:none;z-index:5}
+  .ch::before,.ch::after{content:"";position:absolute;background:var(--ink)}
+  .ch::before{left:0;top:50%;right:0;height:.5px;transform:translateY(-.25px)}
+  .ch::after{top:0;left:50%;bottom:0;width:.5px;transform:translateX(-.25px)}
+  .ch.hot::before,.ch.hot::after{background:var(--hot)}
+  .ch.tl{left:-9px;top:-9px}.ch.tr{right:-9px;top:-9px}.ch.bl{left:-9px;bottom:-9px}.ch.br{right:-9px;bottom:-9px}
+
+  /* PORTRAIT */
+  .portrait{position:relative;align-self:stretch;min-height:560px;overflow:visible}
+  .portrait .frm{position:absolute;inset:0;border:.5px solid var(--hair-st)}
+  .silh-svg{position:absolute;left:0;right:-10px;bottom:0;top:30px}
+  .silh-svg svg{width:100%;height:100%;display:block}
+  .portrait .halftone{
+    position:absolute;left:0;right:-10px;bottom:0;top:30px;
+    background-image:radial-gradient(circle, rgba(255,255,255,.18) 1px, transparent 1.4px);
+    background-size:7px 7px;mix-blend-mode:screen;pointer-events:none;
+    -webkit-mask:linear-gradient(#000,#000);mask:linear-gradient(#000,#000);
+  }
+  .portrait .lbl-tl{position:absolute;top:14px;left:14px;z-index:3}
+  .portrait .lbl-bl{position:absolute;bottom:18px;left:14px;z-index:3;display:flex;flex-direction:column;gap:8px}
+  .portrait .lbl-br{position:absolute;bottom:18px;right:14px;z-index:3;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .portrait .lbl-tr{position:absolute;top:14px;right:14px;z-index:3}
+
+  .portrait .select-blk{font-family:var(--display);font-size:54px;letter-spacing:.02em;line-height:.9;color:var(--ink);background:#fff;padding:2px 10px 0;display:inline-block;border:.5px solid var(--ink)}
+  .portrait .select-sub{margin-top:6px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--hot);font-weight:500;text-transform:uppercase}
+
+  .portrait .ink-splat{position:absolute;left:-20px;top:120px;width:140px;height:90px;z-index:1;pointer-events:none;opacity:.85;transform:rotate(-12deg)}
+
+  .portrait .vstrip{
+    position:absolute;right:-4px;top:44px;bottom:200px;width:22px;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:var(--mono);font-size:9px;letter-spacing:.32em;text-transform:uppercase;
+    padding:8px 3px;background:var(--ink);color:#fff;
+    display:flex;align-items:flex-start;justify-content:center;z-index:3;font-weight:500
+  }
+  .portrait .vstrip.hot{background:var(--hot);right:auto;left:-4px;top:auto;bottom:18px;height:120px}
+
+  /* TYPE BLOCK */
+  .htype{padding:14px 30px 22px 28px;position:relative;min-height:560px}
+  .htype .kicker{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+  .htype .zh-bg{position:absolute;left:14px;top:54px;font-family:var(--tc);font-weight:500;font-size:200px;color:var(--ink);opacity:.07;letter-spacing:-.04em;line-height:.85;pointer-events:none;white-space:nowrap;z-index:0}
+  .htype h1{font-family:var(--display);font-size:132px;line-height:.82;letter-spacing:0;position:relative;z-index:1;margin-top:30px}
+  .htype h1 .slash{color:var(--hot)}
+  .htype h1 .cut{display:inline-block}
+  .htype .h-sub{font-family:var(--display);font-size:42px;line-height:.9;margin-top:10px;position:relative;z-index:1}
+  .htype .h-sub em{font-style:normal;color:var(--hot)}
+
+  .slash-bar{height:5px;background:var(--hot);margin:18px 0;position:relative}
+  .slash-bar::before{content:"";position:absolute;left:0;top:-3px;height:11px;width:5%;background:var(--hot);transform:skewX(-22deg)}
+
+  .htype .zh{font-family:var(--tc);font-weight:300;font-size:13.5px;line-height:1.85;letter-spacing:.1em;max-width:460px;position:relative;z-index:1;margin-top:6px}
+  .htype .zh b{font-weight:500}
+
+  .htype .h-foot{margin-top:22px;display:flex;align-items:center;gap:12px;position:relative;z-index:1;flex-wrap:wrap}
+
+  .htype .stack-bl{position:absolute;left:-2px;bottom:-22px;display:flex;flex-direction:column;line-height:1.1;z-index:3}
+  .htype .stack-bl .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:5px 10px;text-transform:uppercase;font-weight:500}
+  .htype .stack-bl .b{background:var(--hot);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:5px 10px;text-transform:uppercase;font-weight:500}
+
+  .break-tl{position:absolute;top:-12px;left:14px;z-index:4}
+  .break-tr{position:absolute;top:-12px;right:18px;z-index:4}
+
+  /* PLAYER / COMBAT CARD */
+  .pcard{display:flex;flex-direction:column;border-left:.5px solid var(--hair-st);padding:10px 24px 10px 28px;position:relative;gap:12px;min-height:560px}
+  .pcard .row-tabs{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+  .pcard .row-tabs a{padding-bottom:6px;position:relative;opacity:.55}
+  .pcard .row-tabs a.active{opacity:1;font-weight:500}
+  .pcard .row-tabs a.active::after{content:"";position:absolute;left:-2px;right:-2px;bottom:0;height:2px;background:var(--hot)}
+
+  .pcard .bigstat{display:flex;align-items:flex-end;gap:0;margin-top:4px}
+  .pcard .bigstat .lbl-col{display:flex;flex-direction:column}
+  .pcard .bigstat .lbl-col .lbl{background:var(--hot);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:5px 9px 4px;font-weight:500;align-self:flex-start;margin-bottom:6px;line-height:1}
+  .pcard .bigstat .lbl-col .nm{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;opacity:.7;margin-bottom:0}
+  .pcard .bigstat .num{font-family:var(--display);font-size:66px;line-height:.85;letter-spacing:.005em;margin-left:8px}
+  .pcard .bigstat .num em{font-style:normal;color:var(--hot)}
+
+  .pcard .stars{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:-4px}
+  .pcard .stars .s{color:var(--ink);font-size:18px;line-height:1;letter-spacing:1px}
+  .pcard .stars .s i{color:rgba(10,10,10,.25);font-style:normal}
+  .pcard .stars .frag{margin-left:auto;font-family:var(--mono);font-size:12px}
+  .pcard .stars .frag em{font-style:normal;color:var(--hot);font-weight:500}
+
+  .pcard .lvline{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:6px 0;border-top:.5px solid var(--hair-st);border-bottom:.5px solid var(--hair-st)}
+  .pcard .lvline b{font-family:var(--display);font-size:24px;letter-spacing:.04em;font-weight:400;display:inline-block;margin-left:4px}
+  .pcard .lvline b em{font-style:normal;color:var(--hot)}
+
+  .pcard .actions{display:grid;grid-template-columns:repeat(5,1fr);border:.5px solid var(--ink);background:var(--paper)}
+  .pcard .actions .act{padding:10px 4px;border-right:.5px solid var(--hair-st);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pcard .actions .act:last-child{border-right:0}
+  .pcard .actions .act .gl{width:26px;height:26px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px}
+  .pcard .actions .act .nm{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;line-height:1.1}
+  .pcard .actions .act.active .gl{background:var(--hot)}
+  .pcard .actions .act.active .nm{color:var(--hot);font-weight:500}
+
+  .pcard .upgrade{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:auto}
+  .pcard .upgrade .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.8}
+  .pcard .upgrade .l b{font-family:var(--display);font-size:20px;letter-spacing:.05em;font-weight:400;color:var(--ink)}
+  .pcard .upgrade .b-up{display:inline-flex;flex-direction:column;line-height:1}
+  .pcard .upgrade .b-up .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:5px 12px;text-transform:uppercase;font-weight:500}
+  .pcard .upgrade .b-up .b{background:var(--hot);color:#fff;font-family:var(--display);font-size:26px;letter-spacing:.04em;padding:0 12px 2px;text-transform:uppercase}
+
+  /* ============ MAGENTA SECTION BAR ============ */
+  .sec-bar{position:relative;margin:0;padding:0 40px;display:flex;align-items:center;gap:14px;height:44px}
+  .sec-bar .fill{position:absolute;left:0;right:0;top:0;bottom:0;background:var(--hot)}
+  .sec-bar::after{content:"";position:absolute;right:0;top:0;bottom:0;width:60px;background:var(--bg);clip-path:polygon(0 100%,100% 100%,100% 0);z-index:1;pointer-events:none}
+  .sec-bar .num{position:relative;z-index:2;font-family:var(--display);color:#fff;font-size:32px;line-height:1;letter-spacing:.02em;flex:none}
+  .sec-bar .num em{font-style:normal;color:var(--ink)}
+  .sec-bar .ttl{position:relative;z-index:2;color:#fff;font-family:var(--display);font-size:32px;letter-spacing:.02em;line-height:1;white-space:nowrap;flex:none}
+  .sec-bar .zh{position:relative;z-index:2;color:#fff;font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.22em;border-left:.5px solid rgba(255,255,255,.5);padding-left:14px;white-space:nowrap;flex:none}
+  .sec-bar .r{position:relative;z-index:2;margin-left:auto;color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;flex:none;padding-right:50px}
+  .sec-bar.ink .fill{background:var(--ink)}
+  .sec-bar.ink .num em{color:var(--hot)}
+
+  /* ============ MISSION SELECT ============ */
+  .miss-wrap{padding:30px 40px 30px;background:var(--paper);border-bottom:1px solid var(--ink);border-top:1px solid var(--ink);position:relative}
+  .miss-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;gap:14px}
+  .miss-head .l{display:flex;align-items:center;gap:14px}
+  .miss-head .l .esc{display:flex;flex-direction:column;line-height:1;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.2em;padding:6px 10px;text-transform:uppercase;font-weight:500}
+  .miss-head .l .esc b{font-family:var(--display);font-size:22px;letter-spacing:.05em;font-weight:400;margin-top:2px}
+  .miss-head .l .ttl{font-family:var(--display);font-size:40px;line-height:1;letter-spacing:.005em;white-space:nowrap}
+  .miss-head .l .ttl em{font-style:normal;color:var(--hot)}
+  .miss-head .r{display:flex;gap:14px;align-items:center}
+
+  .miss-grid{display:grid;grid-template-columns:repeat(4,1fr);border:.5px solid var(--ink);background:var(--paper)}
+  .miss-tile{position:relative;border-right:.5px solid var(--hair-st);min-height:280px;display:flex;flex-direction:column;background:var(--paper);cursor:pointer}
+  .miss-tile:last-child{border-right:0}
+  .miss-tile .art{flex:1;position:relative;overflow:hidden;border-bottom:.5px solid var(--hair-st);background:#f6f4ef;min-height:160px}
+  .miss-tile .art svg{position:absolute;inset:10% 12% 0 12%;width:auto;height:auto;max-width:76%;max-height:90%}
+  .miss-tile .art .ht{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(0,0,0,.5) 1px,transparent 1.5px);background-size:5px 5px;mix-blend-mode:multiply;opacity:.32;pointer-events:none}
+  .miss-tile .art .corner-ch{position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:var(--ink);padding:3px 6px;z-index:2;font-weight:500}
+  .miss-tile .art .corner-ch.right{left:auto;right:8px}
+
+  .miss-tile .bar{background:var(--hot);color:#fff;font-family:var(--display);font-size:24px;letter-spacing:.02em;padding:6px 12px 4px;line-height:1;display:flex;justify-content:space-between;align-items:center}
+  .miss-tile .bar .right{font-family:var(--mono);font-size:10px;letter-spacing:.16em;font-weight:500}
+  .miss-tile .body{padding:10px 12px 14px}
+  .miss-tile .body .ln{font-family:var(--tc);font-weight:300;font-size:11.5px;line-height:1.65;letter-spacing:.08em;color:#1a1a1a}
+  .miss-tile .body .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
+  .miss-tile .body .meta .diff{display:flex;gap:3px;align-items:center}
+  .miss-tile .body .meta .diff i{width:10px;height:4px;background:var(--ink);display:block}
+  .miss-tile .body .meta .diff i.off{background:rgba(10,10,10,.18)}
+
+  .miss-tile.active{outline:2px solid var(--hot);outline-offset:-2px;z-index:2}
+  .miss-tile.active::before{content:"SELECTED";position:absolute;top:-12px;right:-1px;background:var(--hot);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.22em;padding:4px 8px;z-index:3;font-weight:500}
+
+  /* BRIEF row */
+  .brief{display:grid;grid-template-columns:1fr auto auto;gap:24px;align-items:center;padding:20px 40px 28px;background:var(--paper);border-bottom:1px solid var(--ink)}
+  .brief .text-block{display:flex;align-items:center;gap:18px}
+  .brief .diff-chip{display:flex;align-items:center;gap:10px;flex:none}
+  .brief .diff-chip .lab{font-family:var(--display);font-size:28px;line-height:1;letter-spacing:.02em}
+  .brief .diff-chip .blocks{display:flex;gap:3px}
+  .brief .diff-chip .blocks i{width:20px;height:11px;background:var(--ink);display:block}
+  .brief .diff-chip .blocks i.off{background:rgba(10,10,10,.18)}
+  .brief .text-block p{font-family:var(--tc);font-weight:300;font-size:12.5px;line-height:1.75;letter-spacing:.08em;max-width:600px}
+  .brief .text-block p b{font-weight:500}
+  .brief .gears{display:flex;gap:6px}
+  .brief .gears .g{width:38px;height:38px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px}
+  .brief .gears .g.hot{background:var(--hot)}
+  .brief .ready{display:flex;flex-direction:column;line-height:1}
+  .brief .ready .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.2em;padding:5px 14px;font-weight:500;text-transform:uppercase}
+  .brief .ready .b{background:var(--hot);color:#fff;font-family:var(--display);font-size:34px;letter-spacing:.05em;padding:2px 14px 4px;text-align:center}
+
+  /* ============ DECK ============ */
+  .deck{display:grid;grid-template-columns:1.05fr 1fr 0.95fr;background:var(--paper);border-bottom:1px solid var(--ink)}
+  .deck > .pane{padding:24px;border-right:.5px solid var(--hair-st);position:relative;min-height:540px}
+  .deck > .pane:last-child{border-right:0}
+
+  .pane-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;gap:10px}
+  .pane-head .ttl{font-family:var(--display);font-size:26px;line-height:1}
+  .pane-head .ttl em{font-style:normal;color:var(--hot)}
+  .pane-head .meta{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+
+  .chat{display:flex;flex-direction:column;height:450px}
+  .chat-stream{flex:1;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .msg{max-width:88%;font-family:var(--tc);font-weight:300;font-size:13px;line-height:1.7;letter-spacing:.04em}
+  .msg .who{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;margin-bottom:4px;display:block}
+  .msg .body{border:.5px solid var(--ink);padding:9px 12px;background:var(--paper)}
+  .msg.ai{align-self:flex-start}
+  .msg.ai .body{background:var(--ink);color:#fff}
+  .msg.me{align-self:flex-end;text-align:right}
+  .msg.sys{align-self:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;border-top:.5px solid var(--hair-st);border-bottom:.5px solid var(--hair-st);padding:4px 12px}
+  .msg.hot .body{background:var(--hot);color:#fff;border-color:var(--hot)}
+  .chat-input{margin-top:12px;border:1px solid var(--ink);display:grid;grid-template-columns:auto 1fr auto;align-items:center;background:var(--paper)}
+  .chat-input .prompt{font-family:var(--mono);font-size:14px;color:var(--hot);padding:0 10px;font-weight:500}
+  .chat-input input{flex:1;border:0;background:transparent;font-family:var(--mono);font-size:12px;padding:14px 0;letter-spacing:.06em;outline:none;color:var(--ink);width:100%}
+  .chat-input input::placeholder{color:var(--ink);opacity:.35}
+  .chat-input .send{background:var(--hot);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:14px 16px;text-transform:uppercase;font-weight:500}
+  .caret{display:inline-block;width:8px;height:14px;background:currentColor;vertical-align:-2px;animation:blink 1s steps(2) infinite;margin-left:2px}
+
+  .task{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px 0;border-bottom:.5px solid var(--hair)}
+  .task:last-child{border-bottom:0}
+  .task .chk{width:18px;height:18px;border:1px solid var(--ink);background:var(--paper);position:relative;cursor:pointer;flex:none}
+  .task .chk.done{background:var(--ink)}
+  .task .chk.done::after{content:"";position:absolute;left:3px;top:6px;width:9px;height:5px;border-left:1.5px solid var(--hot);border-bottom:1.5px solid var(--hot);transform:rotate(-45deg)}
+  .task .body{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .task .ttl{font-family:var(--display);font-size:18px;line-height:1;letter-spacing:.01em}
+  .task .ttl s{text-decoration-thickness:1.5px;opacity:.45}
+  .task .sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .task .time{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:right;line-height:1.2}
+  .task .time b{display:block;font-weight:500}
+  .task .time.now b{color:var(--hot)}
+
+  /* MEMORY — auto column avoids overflow */
+  .mem{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:.5px solid var(--hair)}
+  .mem:last-child{border-bottom:0}
+  .mem .n{font-family:var(--display);font-size:28px;line-height:.85;color:var(--ink);white-space:nowrap}
+  .mem .n em{font-style:normal;color:var(--hot)}
+  .mem .body{min-width:0}
+  .mem .ttl{font-family:var(--display);font-size:18px;line-height:1.05;letter-spacing:.01em}
+  .mem .desc{font-family:var(--tc);font-weight:300;font-size:11.5px;line-height:1.65;margin-top:5px;color:#222}
+  .mem .tags{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .pill{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;border:.5px solid var(--ink);padding:2px 6px;line-height:1.4}
+  .pill.hot{background:var(--hot);color:#fff;border-color:var(--hot)}
+  .pill.ink{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* TELEMETRY */
+  .tele{display:grid;grid-template-columns:1.4fr 1fr;background:var(--paper);border-bottom:1px solid var(--ink)}
+  .tele > div{padding:28px 32px;border-right:.5px solid var(--hair-st);position:relative}
+  .tele > div:last-child{border-right:0}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:8px}
+  .stat{padding:0 16px 0 0;border-right:.5px solid var(--hair);position:relative}
+  .stat:last-child{border-right:0;padding-right:0}
+  .stat .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+  .stat .v{font-family:var(--display);font-size:72px;line-height:.82;margin-top:6px}
+  .stat .v em{font-style:normal;color:var(--hot)}
+  .stat .v .u{font-family:var(--mono);font-size:11px;letter-spacing:.1em;margin-left:4px;opacity:.6;vertical-align:14px}
+  .stat .d{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-top:6px;opacity:.7}
+  .stat .d .up{color:var(--hot)}
+
+  .chart{margin-top:22px}
+  .chart-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;opacity:.75}
+  .bars{display:grid;grid-template-columns:repeat(28,1fr);gap:2px;align-items:end;height:108px;border-bottom:1px solid var(--ink)}
+  .bars i{background:var(--ink);display:block}
+  .bars i.hot{background:var(--hot)}
+  .bars i.dim{background:var(--ink);opacity:.2}
+  .bars-axis{display:grid;grid-template-columns:repeat(7,1fr);font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-top:8px;opacity:.6}
+
+  .sched{display:flex;flex-direction:column}
+  .slot{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:.5px solid var(--hair)}
+  .slot:last-child{border-bottom:0}
+  .slot .t{font-family:var(--mono);font-size:11px;letter-spacing:.06em;line-height:1.2}
+  .slot .t b{display:block;font-weight:500;font-size:14px}
+  .slot .t span{opacity:.45;font-size:10px}
+  .slot .b{min-width:0}
+  .slot .b .ttl{font-family:var(--display);font-size:18px;line-height:1.05;letter-spacing:.01em}
+  .slot .b .sub{font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.06em;opacity:.7;margin-top:2px}
+  .slot .mark{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:3px 6px;border:.5px solid var(--ink)}
+  .slot.now{position:relative}
+  .slot.now::before{content:"";position:absolute;left:-30px;top:50%;width:24px;height:1px;background:var(--hot)}
+  .slot.now .mark{background:var(--hot);color:#fff;border-color:var(--hot)}
+
+  /* MARQUEE */
+  .marquee{background:var(--paper);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);overflow:hidden;height:34px;display:flex;align-items:center}
+  .marquee .track{display:flex;gap:42px;animation:slide 44s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding-left:36px;white-space:nowrap;flex:none}
+  .marquee .track em{color:var(--hot);font-style:normal;margin:0 4px}
+  .marquee .track .sq{display:inline-block;width:6px;height:6px;background:var(--hot);margin-right:8px;vertical-align:1px}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* FOOT BAR */
+  .foot-bar{background:var(--ink);color:#fff;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .foot-bar .l{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+  .foot-bar .press{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+  .foot-bar .press .k{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;background:#fff;color:var(--ink);font-family:var(--mono);font-size:11px;letter-spacing:.06em;font-weight:500}
+  .foot-bar .press.hot .k{background:var(--hot);color:#fff}
+  .foot-bar .r{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.7;text-align:right}
+
+  .skull{display:inline-block;width:14px;height:14px;background:#fff;
+    -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2C7 2 3 6 3 11c0 3 2 5 3 7v3h3v-2h2v2h2v-2h2v2h3v-3c1-2 3-4 3-7 0-5-4-9-9-9zM9 11c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2zm6 0c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z'/></svg>") center/contain no-repeat;
+    mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2C7 2 3 6 3 11c0 3 2 5 3 7v3h3v-2h2v2h2v-2h2v2h3v-3c1-2 3-4 3-7 0-5-4-9-9-9zM9 11c-1 0-2-1-2-2s1-2 1-2 2 1 2 2-1 2-2 2z'/></svg>") center/contain no-repeat
+  }
+
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- ========== META ========== -->
+  <div class="meta">
+    <div class="meta-l mono">
+      <span><span class="dot"></span>NEURAL LINK // ONLINE</span>
+      <span>SESSION 00284</span>
+      <span>25.04°N · 121.56°E · TAIPEI</span>
+      <span>CLOUDY 24°</span>
+    </div>
+    <div class="meta-r mono">
+      <span>2026.05.22 ─ FRI</span>
+      <span id="clock">14:27:08</span>
+      <span>BUILD 1.4.7</span>
+    </div>
+  </div>
+
+  <!-- ========== HUD STRIP ========== -->
+  <div class="hud">
+    <div class="hud-l">
+      <span class="hud-stat"><span class="k">FOCUS</span><span class="v">82</span></span>
+      <span class="hud-stat"><span class="k">ENERGY</span><span class="v">64</span></span>
+      <span class="hud-stat"><span class="k">STREAK</span><span class="v">47</span></span>
+      <span class="hud-stat hot"><span class="k">GOLD</span><span class="v">12,480</span></span>
+      <span class="hud-stat"><span class="k">SIGNALS</span><span class="v">05</span></span>
+      <span class="hud-stat"><span class="k">MEM</span><span class="v">71%</span></span>
+    </div>
+    <div class="hud-r">
+      <div class="ico-row">
+        <span class="ico"><span class="skull"></span></span>
+        <span class="ico">◆</span>
+        <span class="ico">×</span>
+      </div>
+      <div class="pl-tag">
+        <span class="n">CHEN / 陳</span>
+        <span class="lv">LV.27 — 訓練師</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== HERO ========== -->
+  <div class="hero">
+    <span class="ch tl"></span><span class="ch tr hot"></span><span class="ch bl hot"></span><span class="ch br"></span>
+
+    <div class="hero-grid">
+
+      <!-- PORTRAIT -->
+      <div class="portrait">
+        <span class="ch tl"></span><span class="ch br hot"></span>
+        <div class="frm"></div>
+        <!-- Chinese background deco — manga-style -->
+        <div style="position:absolute;left:-10px;top:60px;font-family:var(--tc);font-weight:500;font-size:128px;line-height:.85;color:var(--ink);opacity:.06;letter-spacing:-.04em;writing-mode:vertical-rl;z-index:0;pointer-events:none">助理</div>
+
+        <!-- ink splat decoration -->
+        <svg class="ink-splat" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="#0A0A0A">
+            <circle cx="12" cy="44" r="3"/>
+            <circle cx="26" cy="32" r="6"/>
+            <circle cx="44" cy="48" r="10"/>
+            <ellipse cx="74" cy="38" rx="16" ry="10"/>
+            <circle cx="100" cy="48" r="7"/>
+            <circle cx="118" cy="40" r="3.5"/>
+            <circle cx="58" cy="20" r="2"/>
+            <circle cx="86" cy="66" r="3"/>
+            <circle cx="6" cy="60" r="1.6"/>
+            <circle cx="130" cy="58" r="1.8"/>
+          </g>
+        </svg>
+
+        <!-- silhouette + halftone -->
+        <div class="silh-svg">
+          <svg viewBox="0 0 260 560" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="dots" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+                <circle cx="3" cy="3" r="0.85" fill="rgba(255,255,255,.22)"/>
+              </pattern>
+              <mask id="figmask">
+                <rect width="260" height="560" fill="white"/>
+              </mask>
+            </defs>
+            <g fill="#0A0A0A">
+              <!-- dramatic coat collar / hood mass spreading -->
+              <path d="M40 230 Q10 250 0 320 L0 560 L70 560 L72 420 Q70 350 80 290 Z"/>
+              <path d="M220 230 Q250 250 260 320 L260 560 L188 560 L186 420 Q190 350 178 290 Z"/>
+              <!-- shoulder cape sweep -->
+              <path d="M70 220 Q60 200 78 188 L132 196 L180 188 Q200 200 188 222 L196 260 Q160 270 130 268 Q98 272 64 262 Z"/>
+              <!-- torso -->
+              <path d="M86 224 L84 320 Q80 380 86 460 L172 460 Q178 380 174 320 L172 224 Q156 244 130 244 Q104 244 86 224 Z"/>
+              <!-- lower coat / waist tails -->
+              <path d="M84 380 Q60 420 56 500 L70 560 L96 560 L98 450 Z"/>
+              <path d="M174 380 Q198 420 202 500 L188 560 L162 560 L160 450 Z"/>
+              <!-- neck -->
+              <rect x="116" y="180" width="28" height="32"/>
+              <!-- head -->
+              <ellipse cx="130" cy="146" rx="44" ry="54"/>
+              <!-- hair mass (long flowing down) -->
+              <path d="M86 110 Q92 60 130 50 Q170 46 192 90 Q200 120 196 160 Q188 200 178 240 Q170 270 168 300 L160 220 Q156 200 144 196 L116 196 Q104 200 100 220 L92 300 Q88 260 80 230 Q70 180 78 140 Q82 120 86 110 Z"/>
+              <!-- side hair strands -->
+              <path d="M80 200 Q70 240 72 290 Q72 310 82 314 L92 290 Q90 250 92 220 Z"/>
+              <path d="M180 200 Q190 240 188 290 Q188 310 178 314 L168 290 Q170 250 168 220 Z"/>
+              <!-- hair tips (jagged) -->
+              <path d="M70 280 L78 320 L74 320 L68 310 L74 340 L62 330 Z"/>
+              <path d="M190 280 L182 320 L186 320 L192 310 L186 340 L198 330 Z"/>
+              <!-- coat lapel detail -->
+              <path d="M100 222 L130 252 L160 222 L150 218 L130 240 L110 218 Z"/>
+              <!-- belt accent -->
+              <rect x="98" y="350" width="64" height="6"/>
+              <!-- chest accent diamond -->
+              <path d="M130 280 L142 300 L130 320 L118 300 Z" fill="#E8005A"/>
+              <!-- buckle / button -->
+              <circle cx="130" cy="380" r="4"/>
+              <!-- weapon shaft hint -->
+              <rect x="38" y="240" width="4" height="220" transform="rotate(-12 40 350)"/>
+              <!-- jagged scratches on coat -->
+              <path d="M110 400 L116 440 L114 442 L108 410 Z" fill="rgba(255,255,255,.7)" style="mix-blend-mode:screen"/>
+              <path d="M148 410 L152 450 L150 452 L146 420 Z" fill="rgba(255,255,255,.5)" style="mix-blend-mode:screen"/>
+            </g>
+            <!-- halftone over silhouette only — use a clipping rect on the body region -->
+            <g style="mix-blend-mode:screen">
+              <rect x="56" y="220" width="148" height="280" fill="url(%23dots)" opacity="0.6"/>
+              <ellipse cx="130" cy="146" rx="44" ry="54" fill="url(%23dots)" opacity="0.7"/>
+            </g>
+            <!-- magenta accent slash on figure -->
+            <rect x="56" y="438" width="148" height="3" fill="#E8005A"/>
+          </svg>
+        </div>
+
+        <div class="lbl-tl"><span class="chip ink">CHOOSE OPERATOR</span></div>
+
+
+        <div class="lbl-bl">
+          <span class="chip-stack">
+            <span class="a">PART.01</span>
+            <span class="b">READY, GO</span>
+          </span>
+          <span class="select-blk">SELECT</span>
+          <span class="select-sub">▸ ACTIVE OPERATOR</span>
+        </div>
+
+        <div class="lbl-br mono-xs">
+          <span style="background:#fff;border:.5px solid var(--ink);padding:3px 7px">VIEW &nbsp;<b style="color:var(--hot)">V</b></span>
+          <span style="background:#fff;border:.5px solid var(--ink);padding:3px 7px">BACK&nbsp;<b style="color:var(--hot)">B</b></span>
+        </div>
+
+        <div class="vstrip">DON'T LET ME REBOOT THE WORLD · ARIA SYSTEM 1.4.7</div>
+        <div class="vstrip hot">14:27 LOCAL · DAY 047</div>
+      </div>
+
+      <!-- TYPE BLOCK -->
+      <div class="htype">
+        <span class="break-tl chip ink">DAILY BRIEFING / 01</span>
+        <span class="break-tr chip hot">// 005 NEW SIGNALS</span>
+
+        <div class="zh-bg" aria-hidden="true">個人助理</div>
+
+        <div class="kicker mono"><span>14:27 LOCAL</span><span style="opacity:.35">/</span><span>FRI</span><span style="opacity:.35">/</span><span style="color:var(--hot);font-weight:500">DAY 047</span></div>
+
+        <h1>GOOD<br/>AFTER<span class="slash">/</span><br/>NOON</h1>
+        <div class="h-sub">CHEN — <em>READY?</em></div>
+
+        <div class="slash-bar"></div>
+
+        <p class="zh">你的助理已就緒。<b>06 項任務</b>、<b>03 個會議</b>、<b>01 份未完成草稿</b>等待繼續。<br/>建議現在優先處理上午殘留的 <b style="color:var(--hot)">Q2 PRD §5 衡量指標</b>。</p>
+
+        <div class="h-foot">
+          <span class="chip hot">START BRIEFING ↵</span>
+          <span class="chip outline">SKIP &nbsp; S</span>
+          <span class="mono-xs" style="opacity:.5">PRESS ANY KEY TO CONTINUE</span>
+        </div>
+
+        <div class="stack-bl">
+          <span class="a">QUEST.03</span>
+          <span class="b">RESUME, GO</span>
+        </div>
+      </div>
+
+      <!-- PLAYER / COMBAT CARD -->
+      <div class="pcard">
+        <div class="row-tabs">
+          <a>SKIN</a>
+          <a class="active">ROLE&nbsp;DETAILS</a>
+          <a>STORIES</a>
+          <a>SYNC</a>
+        </div>
+
+        <div class="bigstat">
+          <div class="lbl-col">
+            <span class="lbl">COMBAT EFFECTIVENESS</span>
+            <span class="nm">CHEN</span>
+          </div>
+          <span class="num">40<em>,</em>896</span>
+        </div>
+
+        <div class="stars">
+          <span class="s">★★★★<i>★</i></span>
+          <span class="frag">FRAGMENTS <em>110</em>/365</span>
+        </div>
+
+        <div class="lvline">
+          <span>FOCUS, EXECUTION</span>
+          <span>LV.<b>2<em>7</em></b> &nbsp;/&nbsp; LV.<b>3<em>0</em></b></span>
+        </div>
+
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;line-height:1.7">
+          每位 OPERATOR 各有殺手鐧。<br/>關鍵時刻使用 — 效益是平時的兩倍。
+        </div>
+
+        <div class="actions">
+          <div class="act"><span class="gl">⛨</span><span class="nm">DEFENSE</span></div>
+          <div class="act"><span class="gl">✚</span><span class="nm">RECOVER</span></div>
+          <div class="act active"><span class="gl">✦</span><span class="nm">DEEP FOCUS</span></div>
+          <div class="act"><span class="gl">◎</span><span class="nm">ACCURATE</span></div>
+          <div class="act"><span class="gl">⚡</span><span class="nm">OUTBURST</span></div>
+        </div>
+
+        <div class="upgrade">
+          <div class="l">EXP &nbsp; <b>8,420</b> / 10,000</div>
+          <span class="b-up">
+            <span class="a">PRESS U</span>
+            <span class="b">UPGRADE</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== MARQUEE ========== -->
+  <div class="marquee">
+    <div class="track">
+      <span><span class="sq"></span>NEURAL LINK STABLE <em>/</em> LATENCY 38MS</span>
+      <span><span class="sq"></span>5 NEW SIGNALS FROM YOUR INBOX <em>/</em> ARIA SORTED</span>
+      <span><span class="sq"></span>STREAK DAY <em>47</em> <em>/</em> DON'T BREAK THE CHAIN</span>
+      <span><span class="sq"></span>Q2 PRD <em>68%</em> COMPLETE <em>/</em> RESUME ANYTIME</span>
+      <span><span class="sq"></span>MEMORY BANK <em>71%</em> <em>/</em> COMPRESSION SCHEDULED FRI 03:00</span>
+      <span><span class="sq"></span>NEURAL LINK STABLE <em>/</em> LATENCY 38MS</span>
+      <span><span class="sq"></span>5 NEW SIGNALS FROM YOUR INBOX <em>/</em> ARIA SORTED</span>
+      <span><span class="sq"></span>STREAK DAY <em>47</em> <em>/</em> DON'T BREAK THE CHAIN</span>
+      <span><span class="sq"></span>Q2 PRD <em>68%</em> COMPLETE <em>/</em> RESUME ANYTIME</span>
+      <span><span class="sq"></span>MEMORY BANK <em>71%</em></span>
+    </div>
+  </div>
+
+  <!-- ========== MISSION SELECT ========== -->
+  <div class="sec-bar">
+    <div class="fill"></div>
+    <span class="num">№<em>02</em></span>
+    <span class="ttl">MISSION SELECT</span>
+    <span class="zh">任務選擇 / 今日六項主線</span>
+    <span class="r">04 ACTIVE · 02 DONE · ESC TO EXIT</span>
+  </div>
+
+  <div class="miss-wrap">
+    <div class="miss-head">
+      <div class="l">
+        <span class="esc">ESCAPE<b>ESC</b></span>
+        <span class="ttl">CHOOSE QUEST <em>/</em></span>
+        <span class="mono-xs" style="opacity:.6">SCROLL ▾ OR ← →</span>
+      </div>
+      <div class="r">
+        <span class="chip outline">PRESS ↵ TO ENGAGE</span>
+        <span class="mono-xs" style="opacity:.6">SHUFFLE F</span>
+      </div>
+    </div>
+
+    <div class="miss-grid">
+
+      <div class="miss-tile">
+        <div class="art">
+          <span class="corner-ch">№01</span>
+          <span class="corner-ch right">07:30 — DONE</span>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#0A0A0A">
+              <circle cx="32" cy="36" r="20"/>
+              <circle cx="68" cy="28" r="11"/>
+              <path d="M8 80 Q34 60 50 76 L86 96 L8 96 Z"/>
+              <circle cx="78" cy="74" r="6"/>
+              <circle cx="20" cy="22" r="3"/>
+              <circle cx="92" cy="50" r="2.5"/>
+            </g>
+          </svg>
+          <div class="ht"></div>
+        </div>
+        <div class="bar">MORNING DIGEST<span class="right">DONE</span></div>
+        <div class="body">
+          <div class="ln">由 ARIA 整理隔夜信件與 5 條訊號，已歸檔至記憶庫。</div>
+          <div class="meta">
+            <span>PART.1 · 5 MIN</span>
+            <span class="diff">DIFF&nbsp;<i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="miss-tile active">
+        <div class="art">
+          <span class="corner-ch">№02</span>
+          <span class="corner-ch right" style="background:var(--hot)">NOW · 90 MIN</span>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#0A0A0A">
+              <rect x="10" y="10" width="30" height="46"/>
+              <rect x="46" y="18" width="44" height="32"/>
+              <rect x="14" y="60" width="72" height="9"/>
+              <rect x="24" y="73" width="56" height="7"/>
+              <rect x="36" y="84" width="32" height="6"/>
+              <circle cx="86" cy="14" r="3" fill="#E8005A"/>
+            </g>
+          </svg>
+          <div class="ht"></div>
+        </div>
+        <div class="bar">Q2 PRD — ATLAS<span class="right">68%</span></div>
+        <div class="body">
+          <div class="ln">主線任務 / 補完 §5–§6 衡量指標與工程估算。Kim 反對意見已掛邊欄。</div>
+          <div class="meta">
+            <span style="color:var(--hot);font-weight:500">PART.3 · DEEP FOCUS</span>
+            <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i></i><i class="off"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="miss-tile">
+        <div class="art">
+          <span class="corner-ch">№03</span>
+          <span class="corner-ch right">15:30</span>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#0A0A0A">
+              <circle cx="28" cy="34" r="11"/>
+              <path d="M14 50 Q28 44 42 50 L46 92 L8 92 Z"/>
+              <circle cx="70" cy="34" r="10"/>
+              <path d="M58 48 Q70 43 82 48 L86 92 L54 92 Z"/>
+              <rect x="38" y="48" width="22" height="2"/>
+            </g>
+          </svg>
+          <div class="ht"></div>
+        </div>
+        <div class="bar">SYNC — LIANG<span class="right">45 MIN</span></div>
+        <div class="body">
+          <div class="ln">與工程組長 1:1。議程已由 ARIA 草擬：估算 · 風險 · Q3 排序。</div>
+          <div class="meta">
+            <span>PART.2 · MEETING</span>
+            <span class="diff">DIFF&nbsp;<i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="miss-tile">
+        <div class="art">
+          <span class="corner-ch">№04</span>
+          <span class="corner-ch right">22:00</span>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#0A0A0A">
+              <rect x="14" y="14" width="20" height="22"/>
+              <rect x="40" y="14" width="20" height="22"/>
+              <rect x="66" y="14" width="20" height="22"/>
+              <rect x="14" y="40" width="20" height="22"/>
+              <rect x="40" y="40" width="20" height="22" fill="#E8005A"/>
+              <rect x="66" y="40" width="20" height="22"/>
+              <rect x="14" y="66" width="20" height="20"/>
+              <rect x="40" y="66" width="20" height="20"/>
+              <rect x="66" y="66" width="20" height="20"/>
+            </g>
+          </svg>
+          <div class="ht"></div>
+        </div>
+        <div class="bar">JAPANESE N2<span class="right">30 CARDS</span></div>
+        <div class="body">
+          <div class="ln">Anki 漢字練習 · 7 個常忘字已加權。Streak Day 47 — 別斷。</div>
+          <div class="meta">
+            <span>PART.4 · LEARN</span>
+            <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i class="off"></i><i class="off"></i></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BRIEF row -->
+  <div class="brief">
+    <div class="text-block">
+      <div class="diff-chip">
+        <span class="lab">DIFFICULT</span>
+        <span class="blocks"><i></i><i></i><i></i><i class="off"></i></span>
+      </div>
+      <p>主線任務 <b>Q2 PRD §5</b> 進行中。需要拼好衡量指標、嵌入 Kim 的三點反對，並完成工程估算的對齊。ARIA 已備齊 24 則訪談摘要與 3 份競品研究 — <b style="color:var(--hot)">建議先決定北極星，再回頭補旁證</b>。</p>
+    </div>
+    <div class="gears">
+      <span class="g">⛨</span>
+      <span class="g hot">✦</span>
+      <span class="g">◎</span>
+      <span class="g">⚡</span>
+    </div>
+    <div class="ready">
+      <span class="a">PRESS ↵</span>
+      <span class="b">READY</span>
+    </div>
+  </div>
+
+  <!-- ========== COMMAND DECK ========== -->
+  <div class="sec-bar ink">
+    <div class="fill"></div>
+    <span class="num">№<em>03</em></span>
+    <span class="ttl">COMMAND DECK</span>
+    <span class="zh">指令中樞 / 任務 · 對話 · 記憶</span>
+    <span class="r">03 PANELS · LIVE</span>
+  </div>
+
+  <div class="deck">
+
+    <div class="pane">
+      <div class="pane-head">
+        <span class="ttl">TODAY <em>// 06</em></span>
+        <span class="meta">02 DONE · 04 LEFT</span>
+      </div>
+
+      <div class="task">
+        <span class="chk done" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl"><s>REVIEW MORNING DIGEST</s></span><span class="sub">08:30 · 5 ITEMS · AI SUMMARIZED</span></div>
+        <div class="time"><b>08:30</b><span style="opacity:.5">DONE</span></div>
+      </div>
+      <div class="task">
+        <span class="chk done" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl"><s>REPLY KIM — DESIGN SYNC</s></span><span class="sub">SLACK · DRAFTED BY AI</span></div>
+        <div class="time"><b>09:14</b><span style="opacity:.5">DONE</span></div>
+      </div>
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl">DRAFT — Q2 PRD §5 METRICS</span><span class="sub">QUEST.03 · ETA 45 MIN</span></div>
+        <div class="time now"><b>NOW</b><span>14:30</span></div>
+      </div>
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl">CALL WITH ENG LEAD</span><span class="sub">15:30 · MEET // SCHEDULED</span></div>
+        <div class="time"><b>15:30</b><span style="opacity:.5">NEXT</span></div>
+      </div>
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl">PICK UP DRY-CLEANING</span><span class="sub">ZHONGSHAN · BEFORE 20:00</span></div>
+        <div class="time"><b>EVE</b><span style="opacity:.5">A8240</span></div>
+      </div>
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body"><span class="ttl">JAPANESE — 30 CARDS</span><span class="sub">ANKI · STREAK DAY 47</span></div>
+        <div class="time"><b>22:00</b><span style="opacity:.5">SOFT</span></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">
+        <button class="chip ink" style="flex:1;justify-content:space-between;padding:9px 12px">ADD MISSION <span style="background:rgba(255,255,255,.18);padding:1px 6px">+</span></button>
+        <button class="chip outline" style="padding:9px 12px">FILTER &nbsp; F</button>
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-head">
+        <span class="ttl">DIALOGUE <em>// ARIA</em></span>
+        <span class="meta">PART.03 · LIVE</span>
+      </div>
+
+      <div class="chat">
+        <div class="chat-stream">
+          <div class="msg sys">— SESSION RESUMED 14:21 —</div>
+          <div class="msg ai">
+            <span class="who">▶ ARIA</span>
+            <div class="body">早安 Chen。昨晚抓了 17 篇 Atlas 用戶訪談的關鍵句、3 份競品研究。需要我先把「衡量指標」那一節的草稿拼起來嗎？</div>
+          </div>
+          <div class="msg me">
+            <span class="who">CHEN ◀</span>
+            <div class="body">好，先列五個北極星候選，再來談。</div>
+          </div>
+          <div class="msg ai hot">
+            <span class="who">▶ ARIA · CRITICAL</span>
+            <div class="body">Five candidates ready. Top pick: <b>WEEKLY ACTIVE RETURNS (WAR)</b> — 與留存相關係數 0.81。要打開細節？</div>
+          </div>
+          <div class="msg me">
+            <span class="who">CHEN ◀</span>
+            <div class="body">打開。把昨天 Kim 提的反對意見列在旁邊。</div>
+          </div>
+          <div class="msg ai">
+            <span class="who">▶ ARIA</span>
+            <div class="body">已開分頁。Kim 的三點反對：① 取樣偏新用戶 ② 忽略付費權重 ③ 未對齊 Q1 OKR — 我加在草稿邊欄了<span class="caret"></span></div>
+          </div>
+        </div>
+
+        <div class="chat-input">
+          <span class="prompt">▸</span>
+          <input type="text" placeholder="TYPE COMMAND OR ASK ARIA ANYTHING…" />
+          <button class="send">SEND ↵</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-head">
+        <span class="ttl">MEMORY <em>// 12</em></span>
+        <span class="meta">RECENT</span>
+      </div>
+
+      <div class="mem">
+        <span class="n">№<em>01</em></span>
+        <div class="body">
+          <div class="ttl">MORNING DEEP WORK</div>
+          <p class="desc">過去 14 天，09:00–11:30 的專注度平均 91。會議盡量避開這段。</p>
+          <div class="tags"><span class="pill hot">PATTERN</span><span class="pill">14D</span></div>
+        </div>
+      </div>
+      <div class="mem">
+        <span class="n">№<em>02</em></span>
+        <div class="body">
+          <div class="ttl">KIM = DESIGN LEAD</div>
+          <p class="desc">常用 Figma 評論而非 Slack，回覆中位數 2 小時 12 分。</p>
+          <div class="tags"><span class="pill">PERSON</span><span class="pill">ATLAS</span></div>
+        </div>
+      </div>
+      <div class="mem">
+        <span class="n">№<em>03</em></span>
+        <div class="body">
+          <div class="ttl">CAFE — FUJIN ST. №21</div>
+          <p class="desc">週四下午常去；WiFi 84 Mbps，建議帶降噪耳機。</p>
+          <div class="tags"><span class="pill">PLACE</span><span class="pill ink">FAV</span></div>
+        </div>
+      </div>
+      <div class="mem">
+        <span class="n">№<em>04</em></span>
+        <div class="body">
+          <div class="ttl">N2 漢字 — 7 常忘</div>
+          <p class="desc">遭遇 · 範疇 · 委ねる · 滞る · 醸す · 賄う · 矯正。已加權卡片。</p>
+          <div class="tags"><span class="pill">LEARN</span><span class="pill hot">REVIEW</span></div>
+        </div>
+      </div>
+      <div class="mem">
+        <span class="n">№<em>05</em></span>
+        <div class="body">
+          <div class="ttl">DRY-CLEAN TICKET A8240</div>
+          <p class="desc">中山店 21:00 前。會員日 −15%，週五取最划算。</p>
+          <div class="tags"><span class="pill">ERRAND</span></div>
+        </div>
+      </div>
+
+      <button class="chip outline" style="margin-top:14px;width:100%;justify-content:space-between;padding:9px 12px">OPEN MEMORY BANK &nbsp; M</button>
+    </div>
+
+  </div>
+
+  <!-- ========== TELEMETRY ========== -->
+  <div class="sec-bar">
+    <div class="fill"></div>
+    <span class="num">№<em>04</em></span>
+    <span class="ttl">TELEMETRY</span>
+    <span class="zh">數據遙測 / 本週狀態與行程</span>
+    <span class="r">WEEK 21 · 2026</span>
+  </div>
+
+  <div class="tele">
+    <div>
+      <div class="pane-head">
+        <span class="ttl">WEEKLY READOUT</span>
+        <span class="meta">04 METRICS · UPDATED 14:27</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">FOCUS HOURS</div>
+          <div class="v">28<em>.4</em><span class="u">H</span></div>
+          <div class="d"><span class="up">▲ +3.1H</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">TASKS DONE</div>
+          <div class="v">41</div>
+          <div class="d"><span class="up">▲ +12</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">AI ASSISTS</div>
+          <div class="v">1<em>,</em>274</div>
+          <div class="d"><span style="opacity:.55">▽ −86</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">SLEEP AVG</div>
+          <div class="v">7<em>:</em>02<span class="u">H</span></div>
+          <div class="d"><span class="up">▲ +0:18</span> vs LW</div>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart-head">
+          <span>◆ FOCUS / DAY — LAST 28 D</span>
+          <span>PEAK 6.4H · AVG 4.1H</span>
+        </div>
+        <div class="bars" id="bars"></div>
+        <div class="bars-axis">
+          <span>W17</span><span>W18</span><span>W19</span><span>W20</span><span>W21</span><span>W22</span><span style="color:var(--hot);font-weight:500">NOW</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="pane-head">
+        <span class="ttl">TODAY — SCHEDULE</span>
+        <span class="meta">05 SLOTS</span>
+      </div>
+
+      <div class="sched">
+        <div class="slot">
+          <div class="t"><b>09:00</b><span>30 MIN</span></div>
+          <div class="b"><div class="ttl">MORNING DIGEST</div><div class="sub">與 ARIA 對齊本日重點</div></div>
+          <div class="mark">DONE</div>
+        </div>
+        <div class="slot">
+          <div class="t"><b>11:00</b><span>60 MIN</span></div>
+          <div class="b"><div class="ttl">DESIGN SYNC — ATLAS</div><div class="sub">Kim · Hsiao · Lee</div></div>
+          <div class="mark">DONE</div>
+        </div>
+        <div class="slot now">
+          <div class="t"><b>14:30</b><span>90 MIN</span></div>
+          <div class="b"><div class="ttl">PRD DEEP WORK §5–§6</div><div class="sub">勿擾模式 · 通知靜音</div></div>
+          <div class="mark">NOW</div>
+        </div>
+        <div class="slot">
+          <div class="t"><b>15:30</b><span>45 MIN</span></div>
+          <div class="b"><div class="ttl">ENG LEAD 1:1 · LIANG</div><div class="sub">Meet · 議程 AI 已草擬</div></div>
+          <div class="mark">NEXT</div>
+        </div>
+        <div class="slot">
+          <div class="t"><b>20:00</b><span>OPEN</span></div>
+          <div class="b"><div class="ttl">JAPANESE DRILL</div><div class="sub">Anki · 30 cards · 漢字 N2</div></div>
+          <div class="mark">SOFT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== FOOT ========== -->
+  <div class="foot-bar">
+    <div class="l">
+      <span class="press"><span class="k">↵</span> SELECT</span>
+      <span class="press"><span class="k">ESC</span> ESCAPE</span>
+      <span class="press"><span class="k">←</span><span class="k">→</span> NAV</span>
+      <span class="press hot"><span class="k">E</span> CHANGE VIEW</span>
+      <span class="press"><span class="k">V</span> SWITCH MODE</span>
+    </div>
+    <div class="r">© 2026 ARIA OS · BUILD 1.4.7 · NEURAL LINK STABLE</div>
+  </div>
+
+</div>
+
+<script>
+  // live clock
+  const clock = document.getElementById('clock');
+  function tick(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,'0');
+    clock.textContent = p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+
+  // bars
+  const bars = document.getElementById('bars');
+  const data = [3.1,4.2,2.8,5.4,3.9,1.6,2.1, 4.4,5.1,3.3,6.0,4.7,2.9,1.8, 3.6,4.8,5.2,3.0,4.1,2.4,1.9, 4.9,5.6,6.4,5.8,5.0,3.7,4.1];
+  const max = 7;
+  data.forEach((v, i) => {
+    const b = document.createElement('i');
+    const isToday = i === data.length - 1;
+    const weekend = i % 7 === 5 || i % 7 === 6;
+    if (isToday) b.classList.add('hot');
+    else if (weekend) b.classList.add('dim');
+    b.style.height = (v / max * 100) + '%';
+    bars.appendChild(b);
+  });
+
+  // mission tile select
+  document.querySelectorAll('.miss-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.miss-tile').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+    });
+  });
+
+  // chat focus highlight
+  const inp = document.querySelector('.chat-input input');
+  inp.addEventListener('focus', ()=> inp.parentElement.style.borderColor = '#E8005A');
+  inp.addEventListener('blur',  ()=> inp.parentElement.style.borderColor = '#0A0A0A');
+</script>
+</body>
+</html>

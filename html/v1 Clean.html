@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>AI ASSISTANT // DASHBOARD</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  /* ============ RESET ============ */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#F2F0ED;color:#0A0A0A;font-family:"Noto Sans TC",sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+  ::selection{background:#E8005A;color:#fff}
+
+  /* ============ TOKENS ============ */
+  :root{
+    --bg:#F2F0ED;
+    --paper:#FFFFFF;
+    --ink:#0A0A0A;
+    --hot:#E8005A;
+    --hair:rgba(10,10,10,.18); /* 0.5px feel */
+    --hair-strong:rgba(10,10,10,.55);
+    --display:"Bebas Neue",sans-serif;
+    --mono:"DM Mono",ui-monospace,monospace;
+    --tc:"Noto Sans TC",sans-serif;
+  }
+
+  /* ============ GRAIN ============ */
+  body{position:relative;overflow-x:hidden}
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.32'/></svg>");
+    mix-blend-mode:multiply;opacity:.55;
+  }
+
+  /* ============ LAYOUT ============ */
+  .frame{width:1440px;margin:0 auto;padding:0 40px 80px;position:relative}
+  .hr{height:0;border-top:.5px solid var(--hair-strong)}
+  .hr-ink{height:0;border-top:1px solid var(--ink)}
+
+  /* ============ TOP META STRIP ============ */
+  .meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.12em;padding:14px 0;text-transform:uppercase}
+  .meta .dot{display:inline-block;width:6px;height:6px;background:var(--hot);margin-right:8px;vertical-align:middle;animation:blink 1.4s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .meta-l,.meta-r{display:flex;gap:22px}
+
+  /* ============ HUD STATUS BAR ============ */
+  .hud{
+    display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr 1fr;
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+    background:var(--paper);
+  }
+  .hud > div{padding:14px 18px;border-right:.5px solid var(--hair-strong);position:relative}
+  .hud > div:last-child{border-right:0}
+  .hud .label{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink);opacity:.6;text-transform:uppercase}
+  .hud .val{font-family:var(--display);font-size:32px;line-height:1;margin-top:6px;letter-spacing:.02em}
+  .hud .val .u{font-family:var(--mono);font-size:11px;letter-spacing:.08em;margin-left:4px;opacity:.6;vertical-align:8px}
+  .hud .bar{height:6px;background:#eee;margin-top:8px;position:relative;border:.5px solid var(--hair-strong)}
+  .hud .bar i{display:block;height:100%;background:var(--ink)}
+  .hud .bar.hot i{background:var(--hot)}
+  .hud .id{display:flex;align-items:center;gap:14px}
+  .hud .id .avatar{width:46px;height:46px;background:var(--ink);position:relative;flex:none}
+  .hud .id .avatar::after{content:"";position:absolute;left:6px;top:6px;right:-6px;bottom:-6px;background:var(--hot);z-index:-1}
+  .hud .id .who{font-family:var(--display);font-size:22px;line-height:1}
+  .hud .id .sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;opacity:.6;margin-top:4px}
+
+  /* ============ HERO ============ */
+  .hero{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--ink);background:var(--paper)}
+  .hero-l{padding:48px 48px 36px;position:relative;border-right:.5px solid var(--hair-strong)}
+  .hero-r{padding:48px 48px 36px;position:relative;display:flex;flex-direction:column;justify-content:space-between}
+
+  .tag{display:inline-flex;align-items:center;gap:8px;background:var(--hot);color:#fff;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.18em;padding:5px 10px 4px;text-transform:uppercase}
+  .tag.ink{background:var(--ink)}
+  .tag.ghost{background:transparent;color:var(--ink);border:.5px solid var(--ink);padding:4px 9px}
+
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.55}
+  .kicker .pipe{margin:0 8px;opacity:.4}
+
+  .h1{font-family:var(--display);font-size:188px;line-height:.82;letter-spacing:-.005em;margin-top:18px}
+  .h1 .slash{color:var(--hot)}
+  .h1-sub{font-family:var(--display);font-size:48px;line-height:.9;margin-top:8px}
+  .h1-zh{font-family:var(--tc);font-weight:300;font-size:14px;letter-spacing:.18em;margin-top:18px;max-width:380px;line-height:1.7;color:#1a1a1a}
+
+  .hero-foot{margin-top:36px;display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .key{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+
+  /* break-out level chip */
+  .lv-chip{position:absolute;right:-22px;top:48px;background:var(--ink);color:#fff;padding:14px 18px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;line-height:1.4;text-transform:uppercase;z-index:3}
+  .lv-chip .big{font-family:var(--display);font-size:56px;display:block;line-height:.85;letter-spacing:.02em;color:#fff;margin-top:4px}
+  .lv-chip .big em{font-style:normal;color:var(--hot)}
+
+  /* hero right — quest */
+  .quest-head{display:flex;justify-content:space-between;align-items:flex-end}
+  .quest-head .qno{font-family:var(--display);font-size:120px;line-height:.82;color:var(--ink)}
+  .quest-head .qno em{font-style:normal;color:var(--hot)}
+  .quest-meta{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;text-align:right;opacity:.7;line-height:1.6}
+
+  .quest-title{font-family:var(--display);font-size:44px;line-height:.9;margin-top:24px}
+  .quest-zh{font-family:var(--tc);font-weight:300;font-size:13px;letter-spacing:.12em;margin-top:10px;color:#222;line-height:1.7}
+
+  .quest-progress{margin-top:28px}
+  .qp-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+  .qp-bar{height:14px;border:.5px solid var(--ink);position:relative;background:var(--paper)}
+  .qp-bar i{display:block;height:100%;background:var(--ink)}
+  .qp-ticks{position:absolute;inset:0;display:flex}
+  .qp-ticks span{flex:1;border-right:.5px solid rgba(255,255,255,.45)}
+  .qp-ticks span:last-child{border-right:0}
+
+  .quest-foot{display:flex;gap:10px;margin-top:24px;align-items:center}
+
+  /* ============ BUTTONS ============ */
+  .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:11px 16px 10px;cursor:pointer;border:0;text-decoration:none;font-weight:500}
+  .btn.solid{background:var(--hot);color:#fff}
+  .btn.ink{background:var(--ink);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink);border:.5px solid var(--ink)}
+  .btn .key{background:rgba(255,255,255,.18);color:#fff}
+  .btn.ghost .key{background:var(--ink);color:#fff}
+  .btn:hover{transform:translate(-1px,-1px);transition:transform .08s}
+
+  /* ============ SECTION HEAD ============ */
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;padding:36px 0 14px}
+  .sec-head .l{display:flex;align-items:center;gap:14px}
+  .sec-head .num{font-family:var(--display);font-size:54px;line-height:.85}
+  .sec-head .num em{font-style:normal;color:var(--hot)}
+  .sec-head .ttl{font-family:var(--display);font-size:32px;line-height:.9}
+  .sec-head .zh{font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.18em;opacity:.65;margin-left:14px;border-left:.5px solid var(--hair-strong);padding-left:14px}
+  .sec-head .r{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+
+  /* ============ MAIN GRID ============ */
+  .grid{display:grid;grid-template-columns:1.05fr 1fr 0.9fr;gap:0;border:1px solid var(--ink);background:var(--paper)}
+  .col{padding:24px;border-right:.5px solid var(--hair-strong);position:relative}
+  .col:last-child{border-right:0}
+
+  .col-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .col-head .ttl{font-family:var(--display);font-size:22px;line-height:1}
+  .col-head .meta{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+
+  /* ============ TASK LIST ============ */
+  .task{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 0;border-bottom:.5px solid var(--hair)}
+  .task:last-child{border-bottom:0}
+  .task .idx{font-family:var(--mono);font-size:10px;letter-spacing:.1em;opacity:.5;width:22px}
+  .task .body{display:flex;flex-direction:column;gap:3px}
+  .task .ttl{font-family:var(--display);font-size:18px;line-height:1;letter-spacing:.01em}
+  .task .ttl s{text-decoration-thickness:1.5px;opacity:.45}
+  .task .sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .task .time{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-align:right}
+  .task .time b{display:block;font-weight:500;color:var(--hot)}
+  .chk{width:18px;height:18px;border:1px solid var(--ink);background:var(--paper);position:relative;cursor:pointer;flex:none}
+  .chk.done{background:var(--ink)}
+  .chk.done::after{content:"";position:absolute;left:3px;top:6px;width:9px;height:5px;border-left:1.5px solid var(--hot);border-bottom:1.5px solid var(--hot);transform:rotate(-45deg)}
+
+  /* ============ CHAT ============ */
+  .chat{display:flex;flex-direction:column;height:480px}
+  .chat-stream{flex:1;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+  .msg{max-width:84%;font-family:var(--tc);font-weight:300;font-size:13px;line-height:1.6;letter-spacing:.04em}
+  .msg .who{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-bottom:4px;display:block}
+  .msg .body{border:.5px solid var(--ink);padding:10px 12px;background:var(--paper)}
+  .msg.ai{align-self:flex-start}
+  .msg.ai .body{background:var(--ink);color:#fff}
+  .msg.me{align-self:flex-end;text-align:right}
+  .msg.me .body{background:var(--paper);color:var(--ink)}
+  .msg.sys{align-self:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6;border-top:.5px solid var(--hair-strong);border-bottom:.5px solid var(--hair-strong);padding:4px 12px}
+  .msg.hot .body{background:var(--hot);color:#fff;border-color:var(--hot)}
+
+  .chat-input{margin-top:14px;border:1px solid var(--ink);display:grid;grid-template-columns:auto 1fr auto;align-items:center;background:var(--paper)}
+  .chat-input .prompt{font-family:var(--mono);font-size:14px;color:var(--hot);padding:0 10px;font-weight:500}
+  .chat-input input{flex:1;border:0;background:transparent;font-family:var(--mono);font-size:12px;padding:14px 0;letter-spacing:.06em;outline:none;color:var(--ink)}
+  .chat-input input::placeholder{color:var(--ink);opacity:.35}
+  .chat-input .send{background:var(--hot);color:#fff;border:0;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:14px 16px;text-transform:uppercase;cursor:pointer;font-weight:500}
+  .caret{display:inline-block;width:8px;height:14px;background:var(--ink);vertical-align:-2px;animation:blink 1s steps(2) infinite;margin-left:2px}
+
+  /* ============ MEMORY ============ */
+  .mem-item{padding:14px 0;border-bottom:.5px solid var(--hair);display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:flex-start}
+  .mem-item:last-child{border-bottom:0}
+  .mem-item .n{font-family:var(--display);font-size:28px;line-height:.85;color:var(--ink)}
+  .mem-item .n em{font-style:normal;color:var(--hot)}
+  .mem-item .ttl{font-family:var(--display);font-size:18px;line-height:1;letter-spacing:.01em}
+  .mem-item .desc{font-family:var(--tc);font-weight:300;font-size:11.5px;line-height:1.6;margin-top:5px;color:#222}
+  .mem-item .tags{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .pill{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;border:.5px solid var(--ink);padding:2px 6px}
+  .pill.hot{background:var(--hot);color:#fff;border-color:var(--hot)}
+  .pill.ink{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* ============ BOTTOM ROW: STATS + AGENDA + ACTIONS ============ */
+  .row2{display:grid;grid-template-columns:1.4fr 1fr;gap:0;border:1px solid var(--ink);border-top:0;background:var(--paper)}
+  .row2 > div{padding:32px;border-right:.5px solid var(--hair-strong);position:relative}
+  .row2 > div:last-child{border-right:0}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:6px}
+  .stat{padding:0 18px 0 0;border-right:.5px solid var(--hair);position:relative}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+  .stat .v{font-family:var(--display);font-size:74px;line-height:.85;letter-spacing:.005em;margin-top:6px}
+  .stat .v em{font-style:normal;color:var(--hot)}
+  .stat .u{font-family:var(--mono);font-size:11px;letter-spacing:.1em;margin-left:4px;opacity:.6;vertical-align:14px}
+  .stat .d{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-top:6px;opacity:.7}
+  .stat .d .up{color:var(--hot)}
+  .stat .d .dn{opacity:.5}
+
+  /* bar chart */
+  .chart{margin-top:28px}
+  .chart-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;opacity:.7}
+  .bars{display:grid;grid-template-columns:repeat(28,1fr);gap:2px;align-items:end;height:120px;border-bottom:1px solid var(--ink);padding-bottom:0}
+  .bars i{background:var(--ink);width:100%;display:block}
+  .bars i.hot{background:var(--hot)}
+  .bars i.dim{background:var(--ink);opacity:.18}
+  .bars-axis{display:grid;grid-template-columns:repeat(7,1fr);font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-top:8px;opacity:.6}
+
+  /* schedule */
+  .sched{display:flex;flex-direction:column;gap:0}
+  .slot{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:.5px solid var(--hair)}
+  .slot:last-child{border-bottom:0}
+  .slot .t{font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+  .slot .t b{display:block;font-weight:500;font-size:14px}
+  .slot .t span{opacity:.45;font-size:10px}
+  .slot .ttl{font-family:var(--display);font-size:18px;line-height:1.05;letter-spacing:.01em}
+  .slot .sub{font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.06em;opacity:.65;margin-top:2px}
+  .slot .mark{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:3px 6px;border:.5px solid var(--ink)}
+  .slot.now{position:relative}
+  .slot.now::before{content:"";position:absolute;left:-40px;top:50%;width:32px;height:1px;background:var(--hot)}
+  .slot.now .mark{background:var(--hot);color:#fff;border-color:var(--hot)}
+
+  /* ============ BANNER STRIP ============ */
+  .banner{margin-top:0;border:1px solid var(--ink);border-top:0;background:var(--ink);color:#fff;display:flex;overflow:hidden;white-space:nowrap;align-items:center;height:38px}
+  .banner .track{display:flex;gap:36px;animation:slide 38s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding-left:36px}
+  .banner .track span em{color:var(--hot);font-style:normal;margin:0 6px}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* ============ FOOT ============ */
+  .foot{display:flex;justify-content:space-between;align-items:center;padding:20px 0 0;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+  .legend{display:flex;gap:18px;align-items:center}
+  .legend .k{display:inline-flex;align-items:center;gap:6px}
+  .legend .k i{width:10px;height:10px;background:var(--ink)}
+  .legend .k i.hot{background:var(--hot)}
+  .legend .k i.line{height:1px;width:14px;background:var(--ink)}
+
+  /* ============ BREAK-OUT ELEMENTS ============ */
+  .breakout-1{position:absolute;left:-12px;bottom:-14px;background:var(--hot);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;padding:6px 10px}
+  .breakout-2{position:absolute;right:-1px;top:-14px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px}
+
+  .crosshair{position:absolute;width:14px;height:14px;border:1px solid var(--hot);pointer-events:none}
+  .crosshair::before,.crosshair::after{content:"";position:absolute;background:var(--hot)}
+  .crosshair::before{left:50%;top:-4px;bottom:-4px;width:1px;transform:translateX(-.5px)}
+  .crosshair::after{top:50%;left:-4px;right:-4px;height:1px;transform:translateY(-.5px)}
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- ====== META STRIP ====== -->
+  <div class="meta">
+    <div class="meta-l">
+      <span><span class="dot"></span>NEURAL LINK // ONLINE</span>
+      <span>SESSION 00284</span>
+      <span>LAT 25.04°N · LON 121.56°E</span>
+      <span>TAIPEI / CLOUDY 24°</span>
+    </div>
+    <div class="meta-r">
+      <span>2026.05.22 ─ FRI</span>
+      <span id="clock">14:27:08</span>
+      <span>BUILD 1.4.7</span>
+      <span>ESCAPE — <span class="key" style="background:#0A0A0A;color:#fff;display:inline-flex;padding:1px 6px;font-size:9px;letter-spacing:.06em">ESC</span></span>
+    </div>
+  </div>
+
+  <!-- ====== HUD STATUS BAR ====== -->
+  <div class="hud">
+    <div class="id">
+      <div class="avatar"></div>
+      <div>
+        <div class="who">CHEN / 陳</div>
+        <div class="sub">OPERATOR · LV.27 · 訓練師</div>
+      </div>
+    </div>
+    <div>
+      <div class="label">◆ FOCUS</div>
+      <div class="val">82<span class="u">/100</span></div>
+      <div class="bar"><i style="width:82%"></i></div>
+    </div>
+    <div>
+      <div class="label">⚡ ENERGY</div>
+      <div class="val">64<span class="u">/100</span></div>
+      <div class="bar hot"><i style="width:64%"></i></div>
+    </div>
+    <div>
+      <div class="label">★ STREAK</div>
+      <div class="val">47<span class="u">DAYS</span></div>
+      <div class="bar"><i style="width:94%"></i></div>
+    </div>
+    <div>
+      <div class="label">$ GOLD</div>
+      <div class="val">12,480<span class="u">PT</span></div>
+      <div class="bar"><i style="width:48%"></i></div>
+    </div>
+    <div>
+      <div class="label">◐ MEMORY</div>
+      <div class="val">71<span class="u">%</span></div>
+      <div class="bar"><i style="width:71%"></i></div>
+    </div>
+  </div>
+
+  <!-- ====== HERO ====== -->
+  <div class="hero">
+    <div class="hero-l">
+      <div class="kicker">
+        <span class="tag">PART.01</span>
+        <span style="margin-left:10px">DAILY BRIEFING</span>
+        <span class="pipe">/</span>
+        <span>14:27 LOCAL</span>
+      </div>
+
+      <h1 class="h1">GOOD<br/>AFTER<span class="slash">/</span>NOON</h1>
+      <div class="h1-sub">CHEN — READY?</div>
+      <p class="h1-zh">你的助理已準備就緒。今日有 <b>6 項任務</b>、<b>3 個會議</b>、以及一份未完成的草稿等待繼續。建議優先處理上午殘留的 <b>產品需求文件</b>。</p>
+
+      <div class="hero-foot">
+        <button class="btn solid">START BRIEFING <span class="key">↵</span></button>
+        <button class="btn ghost">SKIP <span class="key">S</span></button>
+        <span style="opacity:.5">PRESS ANY KEY TO CONTINUE</span>
+      </div>
+
+      <div class="breakout-1">// 005 NEW SIGNALS</div>
+    </div>
+
+    <div class="hero-r">
+      <div class="lv-chip">
+        ACTIVE QUEST
+        <span class="big">LV.<em>27</em></span>
+        EXP 8,420 / 10,000
+      </div>
+
+      <div>
+        <div class="quest-head">
+          <div class="qno">№<em>03</em></div>
+          <div class="quest-meta">
+            MAIN QUEST<br/>
+            DEADLINE — TUE 18:00<br/>
+            PRIORITY ▮▮▮▮▯
+          </div>
+        </div>
+        <div class="quest-title">SHIP THE Q2 PRD<br/>FOR ATLAS REWORK</div>
+        <p class="quest-zh">完成 Atlas 重構的產品需求文件草稿，包含三條使用者旅程、競品比較、與工程估算。AI 已整理 24 則訪談摘要供參。</p>
+      </div>
+
+      <div class="quest-progress">
+        <div class="qp-row"><span>PROGRESS</span><span>68% — 4 / 6 SECTIONS</span></div>
+        <div class="qp-bar">
+          <i style="width:68%"></i>
+          <div class="qp-ticks">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="quest-foot">
+          <button class="btn ink">RESUME DRAFT <span class="key">↵</span></button>
+          <button class="btn ghost">VIEW NOTES <span class="key">N</span></button>
+          <span class="tag ghost">AUTO-SAVED 14:21</span>
+        </div>
+      </div>
+
+      <div class="breakout-2">SYSTEM // QUEST-03</div>
+    </div>
+  </div>
+
+  <!-- ====== SECTION HEAD: COMMAND ====== -->
+  <div class="sec-head">
+    <div class="l">
+      <span class="num">№<em>02</em></span>
+      <span class="ttl">COMMAND DECK</span>
+      <span class="zh">指令中樞 / 任務 · 對話 · 記憶</span>
+    </div>
+    <div class="r">3 PANELS // SCROLL ▾</div>
+  </div>
+
+  <!-- ====== MAIN 3-COL GRID ====== -->
+  <div class="grid">
+
+    <!-- TASKS -->
+    <div class="col">
+      <div class="col-head">
+        <div class="ttl">TODAY MISSIONS</div>
+        <div class="meta">06 TOTAL · 02 DONE</div>
+      </div>
+
+      <div class="task">
+        <span class="chk done" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl"><s>REVIEW MORNING DIGEST</s></span>
+          <span class="sub">08:30 · 5 ITEMS · AI SUMMARIZED</span>
+        </div>
+        <div class="time">08<b>:30</b></div>
+      </div>
+
+      <div class="task">
+        <span class="chk done" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl"><s>REPLY KIM — DESIGN SYNC</s></span>
+          <span class="sub">SLACK · DRAFTED BY AI</span>
+        </div>
+        <div class="time">09<b>:14</b></div>
+      </div>
+
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl">DRAFT — Q2 PRD §5 METRICS</span>
+          <span class="sub">QUEST-03 · ETA 45 MIN</span>
+        </div>
+        <div class="time"><b style="color:#E8005A">NOW</b></div>
+      </div>
+
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl">CALL WITH ENG LEAD</span>
+          <span class="sub">15:30 · MEET // SCHEDULED</span>
+        </div>
+        <div class="time">15<b>:30</b></div>
+      </div>
+
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl">PICK UP DRY-CLEANING</span>
+          <span class="sub">ZHONGSHAN · BEFORE 20:00</span>
+        </div>
+        <div class="time">EVE</div>
+      </div>
+
+      <div class="task">
+        <span class="chk" onclick="this.classList.toggle('done')"></span>
+        <div class="body">
+          <span class="ttl">JAPANESE — 30 NEW CARDS</span>
+          <span class="sub">ANKI · STREAK DAY 47</span>
+        </div>
+        <div class="time">22<b>:00</b></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:18px;align-items:center">
+        <button class="btn ink" style="flex:1;justify-content:space-between">ADD MISSION <span class="key">+</span></button>
+        <button class="btn ghost">FILTER <span class="key">F</span></button>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="col">
+      <div class="col-head">
+        <div class="ttl">DIALOGUE — A.R.I.A</div>
+        <div class="meta">PART.03 · LIVE</div>
+      </div>
+
+      <div class="chat">
+        <div class="chat-stream">
+          <div class="msg sys">— SESSION RESUMED 14:21 —</div>
+
+          <div class="msg ai">
+            <span class="who">▶ ARIA</span>
+            <div class="body">早安 Chen。昨晚抓了 17 篇 Atlas 用戶訪談的關鍵句、3 份競品研究。需要我先把「衡量指標」那一節的草稿拼起來嗎？</div>
+          </div>
+
+          <div class="msg me">
+            <span class="who">CHEN ◀</span>
+            <div class="body">好，先列五個北極星候選，再來談。</div>
+          </div>
+
+          <div class="msg ai hot">
+            <span class="who">▶ ARIA · CRITICAL</span>
+            <div class="body">Five candidates ready. Top pick: <b>WEEKLY ACTIVE RETURNS (WAR)</b> — 與留存相關係數 0.81。要打開細節？</div>
+          </div>
+
+          <div class="msg me">
+            <span class="who">CHEN ◀</span>
+            <div class="body">打開。同時幫我把昨天 Kim 提的反對意見列在旁邊。</div>
+          </div>
+
+          <div class="msg ai">
+            <span class="who">▶ ARIA</span>
+            <div class="body">已開分頁。Kim 的三點反對：取樣偏新用戶、忽略付費權重、未對齊 Q1 OKR — 我加在草稿邊欄了。<span class="caret"></span></div>
+          </div>
+        </div>
+
+        <div class="chat-input">
+          <span class="prompt">▸</span>
+          <input type="text" placeholder="TYPE COMMAND OR ASK ARIA ANYTHING…" />
+          <button class="send">SEND ↵</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMORY -->
+    <div class="col">
+      <div class="col-head">
+        <div class="ttl">MEMORY BANK</div>
+        <div class="meta">RECENT · 12 ITEMS</div>
+      </div>
+
+      <div class="mem-item">
+        <span class="n">№<em>01</em></span>
+        <div>
+          <div class="ttl">YOU PREFER MORNING DEEP WORK</div>
+          <p class="desc">過去 14 天，09:00–11:30 之間的專注度平均 91。會議盡量避開這段。</p>
+          <div class="tags"><span class="pill hot">PATTERN</span><span class="pill">14D</span></div>
+        </div>
+      </div>
+
+      <div class="mem-item">
+        <span class="n">№<em>02</em></span>
+        <div>
+          <div class="ttl">KIM = DESIGN LEAD, ATLAS</div>
+          <p class="desc">常用 Figma 評論而非 Slack，回覆中位數 2 小時 12 分。</p>
+          <div class="tags"><span class="pill">PERSON</span><span class="pill">PROJECT</span></div>
+        </div>
+      </div>
+
+      <div class="mem-item">
+        <span class="n">№<em>03</em></span>
+        <div>
+          <div class="ttl">CAFE — FUJIN ST. №21</div>
+          <p class="desc">你週四下午常去的店；無線網路速度 84 Mbps，建議帶降噪耳機。</p>
+          <div class="tags"><span class="pill">PLACE</span><span class="pill ink">FAV</span></div>
+        </div>
+      </div>
+
+      <div class="mem-item">
+        <span class="n">№<em>04</em></span>
+        <div>
+          <div class="ttl">N2 漢字 — 7 個常忘</div>
+          <p class="desc">遭遇 · 範疇 · 委ねる · 滞る · 醸す · 賄う · 矯正。已排進今晚卡片。</p>
+          <div class="tags"><span class="pill">LEARN</span><span class="pill hot">REVIEW</span></div>
+        </div>
+      </div>
+
+      <div class="mem-item">
+        <span class="n">№<em>05</em></span>
+        <div>
+          <div class="ttl">DRY-CLEANING TICKET A8240</div>
+          <p class="desc">中山店，營業到 21:00。週五取件最划算（會員日 −15%）。</p>
+          <div class="tags"><span class="pill">ERRAND</span></div>
+        </div>
+      </div>
+
+      <button class="btn ghost" style="margin-top:14px;width:100%;justify-content:space-between">OPEN FULL MEMORY <span class="key">M</span></button>
+    </div>
+  </div>
+
+  <!-- ====== SECTION HEAD: TELEMETRY ====== -->
+  <div class="sec-head">
+    <div class="l">
+      <span class="num">№<em>03</em></span>
+      <span class="ttl">TELEMETRY</span>
+      <span class="zh">數據遙測 / 本週狀態與行程</span>
+    </div>
+    <div class="r">WEEK 21 · 2026</div>
+  </div>
+
+  <!-- ====== ROW 2: STATS + AGENDA ====== -->
+  <div class="row2">
+
+    <div>
+      <div class="col-head">
+        <div class="ttl">WEEKLY READOUT</div>
+        <div class="meta">04 METRICS · UPDATED 14:27</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">FOCUS HOURS</div>
+          <div class="v">28<em>.4</em><span class="u">H</span></div>
+          <div class="d"><span class="up">▲ +3.1H</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">TASKS DONE</div>
+          <div class="v">41</div>
+          <div class="d"><span class="up">▲ +12</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">AI INTERVENTIONS</div>
+          <div class="v">1<em>,</em>274</div>
+          <div class="d"><span class="dn">▽ −86</span> vs LW</div>
+        </div>
+        <div class="stat">
+          <div class="k">SLEEP AVG</div>
+          <div class="v">7<em>:</em>02<span class="u">H</span></div>
+          <div class="d"><span class="up">▲ +0:18</span> vs LW</div>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart-head">
+          <span>◆ FOCUS / DAY — LAST 28 D</span>
+          <span>PEAK 6.4H · AVG 4.1H</span>
+        </div>
+        <div class="bars" id="bars"></div>
+        <div class="bars-axis">
+          <span>W17</span><span>W18</span><span>W19</span><span>W20</span><span>W21</span><span>W22</span><span>NOW</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="col-head">
+        <div class="ttl">TODAY — SCHEDULE</div>
+        <div class="meta">05 SLOTS</div>
+      </div>
+
+      <div class="sched">
+        <div class="slot">
+          <div class="t"><b>09:00</b><span>30 MIN</span></div>
+          <div>
+            <div class="ttl">MORNING DIGEST</div>
+            <div class="sub">與 ARIA 對齊本日重點</div>
+          </div>
+          <div class="mark">DONE</div>
+        </div>
+
+        <div class="slot">
+          <div class="t"><b>11:00</b><span>60 MIN</span></div>
+          <div>
+            <div class="ttl">DESIGN SYNC — ATLAS</div>
+            <div class="sub">Kim · Hsiao · Lee</div>
+          </div>
+          <div class="mark">DONE</div>
+        </div>
+
+        <div class="slot now">
+          <div class="t"><b>14:30</b><span>90 MIN</span></div>
+          <div>
+            <div class="ttl">PRD DEEP WORK §5–§6</div>
+            <div class="sub">勿擾模式 · 通知靜音</div>
+          </div>
+          <div class="mark">NOW</div>
+        </div>
+
+        <div class="slot">
+          <div class="t"><b>15:30</b><span>45 MIN</span></div>
+          <div>
+            <div class="ttl">ENG LEAD 1:1 · LIANG</div>
+            <div class="sub">Meet · 議程 AI 已草擬</div>
+          </div>
+          <div class="mark">NEXT</div>
+        </div>
+
+        <div class="slot">
+          <div class="t"><b>20:00</b><span>OPEN</span></div>
+          <div>
+            <div class="ttl">JAPANESE DRILL</div>
+            <div class="sub">Anki · 30 cards · 漢字 N2</div>
+          </div>
+          <div class="mark">SOFT</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ====== MARQUEE BANNER ====== -->
+  <div class="banner">
+    <div class="track">
+      <span>◆ NEURAL LINK STABLE <em>/</em> LATENCY 38MS</span>
+      <span>◆ 5 NEW SIGNALS FROM YOUR INBOX <em>/</em> ARIA SORTED</span>
+      <span>◆ STREAK DAY <em>47</em> <em>/</em> DON'T BREAK THE CHAIN</span>
+      <span>◆ Q2 PRD <em>68%</em> COMPLETE <em>/</em> RESUME ANYTIME</span>
+      <span>◆ MEMORY BANK <em>71%</em> <em>/</em> COMPRESSION SCHEDULED FRI 03:00</span>
+      <span>◆ NEURAL LINK STABLE <em>/</em> LATENCY 38MS</span>
+      <span>◆ 5 NEW SIGNALS FROM YOUR INBOX <em>/</em> ARIA SORTED</span>
+      <span>◆ STREAK DAY <em>47</em> <em>/</em> DON'T BREAK THE CHAIN</span>
+      <span>◆ Q2 PRD <em>68%</em> COMPLETE <em>/</em> RESUME ANYTIME</span>
+      <span>◆ MEMORY BANK <em>71%</em> <em>/</em> COMPRESSION SCHEDULED FRI 03:00</span>
+    </div>
+  </div>
+
+  <!-- ====== FOOT ====== -->
+  <div class="foot">
+    <div class="legend">
+      <span class="k"><i></i> COMPLETED</span>
+      <span class="k"><i class="hot"></i> ACTIVE / CRITICAL</span>
+      <span class="k"><i class="line"></i> THRESHOLD</span>
+    </div>
+    <div>NAV — <span class="key" style="background:#0A0A0A;color:#fff;display:inline-flex;padding:1px 6px;font-size:9px">←</span> <span class="key" style="background:#0A0A0A;color:#fff;display:inline-flex;padding:1px 6px;font-size:9px">→</span> &nbsp;&nbsp; SELECT — <span class="key" style="background:#0A0A0A;color:#fff;display:inline-flex;padding:1px 6px;font-size:9px">↵</span> &nbsp;&nbsp; ESCAPE — <span class="key" style="background:#0A0A0A;color:#fff;display:inline-flex;padding:1px 6px;font-size:9px">ESC</span></div>
+    <div>© 2026 ARIA OS · BUILD 1.4.7</div>
+  </div>
+
+</div>
+
+<script>
+  // live clock
+  const clock = document.getElementById('clock');
+  function tick(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  // generate bar chart — 28 days
+  const bars = document.getElementById('bars');
+  const data = [3.1,4.2,2.8,5.4,3.9,1.6,2.1, 4.4,5.1,3.3,6.0,4.7,2.9,1.8, 3.6,4.8,5.2,3.0,4.1,2.4,1.9, 4.9,5.6,6.4,5.8,5.0,3.7,4.1];
+  const max = 7;
+  data.forEach((v, i) => {
+    const b = document.createElement('i');
+    const isToday = i === data.length - 1;
+    const isWeekend = i % 7 === 5 || i % 7 === 6;
+    if (isToday) b.classList.add('hot');
+    else if (isWeekend) b.classList.add('dim');
+    b.style.height = (v / max * 100) + '%';
+    bars.appendChild(b);
+  });
+
+  // input feedback
+  const inp = document.querySelector('.chat-input input');
+  inp.addEventListener('focus', ()=> inp.parentElement.style.borderColor = '#E8005A');
+  inp.addEventListener('blur',  ()=> inp.parentElement.style.borderColor = '#0A0A0A');
+</script>
+</body>
+</html>

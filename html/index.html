@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>ARIA // INFO MONITOR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;500&display=swap" rel="stylesheet" />
+<style>
+  /* ===== TOKENS ===== */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#F2F0ED; --paper:#FFFFFF; --ink:#0A0A0A; --hot:#E8005A;
+    --hair:rgba(10,10,10,.16); --hair-st:rgba(10,10,10,.5);
+    --display:"Bebas Neue",sans-serif;
+    --mono:"DM Mono",ui-monospace,monospace;
+    --tc:"Noto Sans TC",sans-serif;
+    --sidebar:208px;
+  }
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--tc);font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--hot);color:#fff}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:transparent}
+  a{color:inherit;text-decoration:none}
+  img,svg{display:block}
+
+  /* ===== GRAIN + SCRATCH OVERLAY ===== */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.32'/></svg>");
+    mix-blend-mode:multiply;opacity:.22;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:201;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><g stroke='%230A0A0A' stroke-width='0.5' opacity='0.4' fill='none'><path d='M0,42 L800,40'/><path d='M0,200 L800,196'/><path d='M0,360 L800,358'/><path d='M0,510 L800,512'/><path d='M140,0 L142,600'/><path d='M540,0 L538,600'/><path d='M720,0 L722,600'/></g></svg>");
+    mix-blend-mode:multiply;opacity:.18;background-size:800px 600px;
+  }
+
+  /* ===== FRAME ===== */
+  .frame{width:1440px;margin:0 auto;display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:100vh;position:relative}
+
+  /* ===== UTIL ===== */
+  .mono{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+  .mono-xs{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase}
+
+  /* ===== CHIPS ===== */
+  .chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px 4px;line-height:1;white-space:nowrap}
+  .chip.ink{background:var(--ink);color:#fff}
+  .chip.hot{background:var(--hot);color:#fff}
+  .chip.outline{border:.5px solid var(--ink);padding:4px 9px}
+  .chip-stack{display:inline-flex;flex-direction:column;line-height:1.1}
+  .chip-stack .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:4px 8px;text-transform:uppercase;font-weight:500}
+  .chip-stack .b{background:var(--hot);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:4px 8px;text-transform:uppercase;font-weight:500}
+
+  /* crosshair */
+  .ch{position:absolute;width:16px;height:16px;pointer-events:none;z-index:5}
+  .ch::before,.ch::after{content:"";position:absolute;background:var(--ink)}
+  .ch::before{left:0;top:50%;right:0;height:.5px;transform:translateY(-.25px)}
+  .ch::after{top:0;left:50%;bottom:0;width:.5px;transform:translateX(-.25px)}
+  .ch.hot::before,.ch.hot::after{background:var(--hot)}
+  .ch.tl{left:-8px;top:-8px}.ch.tr{right:-8px;top:-8px}.ch.bl{left:-8px;bottom:-8px}.ch.br{right:-8px;bottom:-8px}
+
+  /* ===== SIDEBAR ===== */
+  .sb{background:var(--paper);border-right:1px solid var(--ink);padding:0;position:sticky;top:0;height:100vh;align-self:start;display:flex;flex-direction:column;z-index:50}
+  .sb-head{padding:18px 18px 16px;border-bottom:.5px solid var(--hair-st);position:relative}
+  .sb-head .logo{font-family:var(--display);font-size:30px;line-height:.9;letter-spacing:.05em}
+  .sb-head .logo em{font-style:normal;color:var(--hot)}
+  .sb-head .ver{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;margin-top:4px}
+  .sb-head .ver i{display:inline-block;width:5px;height:5px;background:var(--hot);margin-right:6px;vertical-align:1px;animation:blink 1.4s steps(2) infinite}
+  @keyframes blink{50%{opacity:.1}}
+
+  .sb-meta{padding:14px 18px;border-bottom:.5px solid var(--hair-st);display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.7;line-height:1.4}
+
+  .sb-nav{padding:14px 0;flex:1;display:flex;flex-direction:column;gap:1px;overflow:auto}
+  .sb-section{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;opacity:.45;padding:14px 18px 6px;font-weight:500}
+  .sb-item{display:grid;grid-template-columns:22px 1fr auto;align-items:center;padding:10px 18px;gap:10px;border-left:3px solid transparent;cursor:pointer;position:relative}
+  .sb-item .icon{font-family:var(--mono);font-size:13px;opacity:.7;line-height:1}
+  .sb-item .lbl{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+  .sb-item .lbl b{font-family:var(--display);font-size:20px;letter-spacing:.04em;font-weight:400;line-height:.9}
+  .sb-item .lbl span{font-family:var(--tc);font-weight:300;font-size:10px;letter-spacing:.1em;opacity:.55;margin-top:2px}
+  .sb-item .key{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 6px;background:var(--bg);border:.5px solid var(--hair-st);text-transform:uppercase;font-weight:500}
+  .sb-item:hover{background:#FAFAF7}
+  .sb-item.active{border-left-color:var(--hot);background:var(--ink);color:#fff}
+  .sb-item.active .icon{color:var(--hot);opacity:1}
+  .sb-item.active .lbl span{opacity:.55;color:#fff}
+  .sb-item.active .key{background:var(--hot);color:#fff;border-color:var(--hot)}
+  .sb-item .dot{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);width:6px;height:6px;background:var(--hot);border-radius:50%}
+  .sb-item.has-new .dot{display:block}
+  .sb-item.has-new .key{display:none}
+
+  .sb-foot{border-top:.5px solid var(--hair-st);padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+  .sb-foot .pl{display:flex;align-items:center;gap:10px}
+  .sb-foot .pl .av{width:34px;height:34px;background:var(--ink);position:relative;flex:none}
+  .sb-foot .pl .av::after{content:"";position:absolute;left:4px;top:4px;right:-4px;bottom:-4px;background:var(--hot);z-index:-1}
+  .sb-foot .pl .who{font-family:var(--display);font-size:18px;letter-spacing:.04em;line-height:.95}
+  .sb-foot .pl .who span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--hot);font-weight:500;margin-top:2px;text-transform:uppercase}
+
+  /* ===== MAIN ===== */
+  .main{position:relative;min-width:0;padding-bottom:60px}
+
+  /* TOP META */
+  .meta{display:flex;justify-content:space-between;align-items:center;padding:14px 36px;border-bottom:.5px solid var(--hair-st)}
+  .meta .dot{display:inline-block;width:6px;height:6px;background:var(--hot);margin-right:8px;vertical-align:1px;animation:blink 1.4s steps(2) infinite}
+  .meta-l,.meta-r{display:flex;gap:22px;align-items:center}
+
+  /* HUD STRIP */
+  .hud{display:flex;justify-content:space-between;align-items:center;padding:16px 36px 20px;gap:18px;flex-wrap:wrap}
+  .hud-l{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .hud-stat{background:var(--ink);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;display:inline-flex;align-items:stretch;line-height:1;font-weight:500}
+  .hud-stat .k{padding:7px 9px 6px;display:flex;align-items:center}
+  .hud-stat .v{padding:7px 11px 6px;background:#fff;color:var(--ink);font-weight:500;display:flex;align-items:center}
+  .hud-stat.hot{background:var(--hot)}
+  .hud-stat.hot .v{color:var(--hot)}
+  .hud-r{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+
+  /* SECTION BAR */
+  .sec-bar{position:relative;padding:0 36px;display:flex;align-items:center;gap:14px;height:48px}
+  .sec-bar .fill{position:absolute;left:0;right:0;top:0;bottom:0;background:var(--hot);z-index:0}
+  .sec-bar::after{content:"";position:absolute;right:0;top:0;bottom:0;width:70px;background:var(--bg);clip-path:polygon(0 100%,100% 100%,100% 0);z-index:1;pointer-events:none}
+  .sec-bar .num{position:relative;z-index:2;font-family:var(--display);color:#fff;font-size:34px;line-height:1;letter-spacing:.02em;flex:none}
+  .sec-bar .num em{font-style:normal;color:var(--ink)}
+  .sec-bar .ttl{position:relative;z-index:2;color:#fff;font-family:var(--display);font-size:34px;letter-spacing:.02em;line-height:1;white-space:nowrap;flex:none}
+  .sec-bar .zh{position:relative;z-index:2;color:#fff;font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.22em;border-left:.5px solid rgba(255,255,255,.5);padding-left:14px;white-space:nowrap;flex:none}
+  .sec-bar .r{position:relative;z-index:2;margin-left:auto;color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;flex:none;padding-right:56px;white-space:nowrap}
+  .sec-bar.ink .fill{background:var(--ink)}
+  .sec-bar.ink .num em{color:var(--hot)}
+
+  /* ===== SECTION HEAD (for sub-bands) ===== */
+  .band{background:var(--paper);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:24px 36px 28px;position:relative}
+  .band-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+  .band-head .l{display:flex;align-items:flex-end;gap:14px}
+  .band-head .l .esc{display:flex;flex-direction:column;line-height:1;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.2em;padding:6px 10px;text-transform:uppercase;font-weight:500}
+  .band-head .l .esc b{font-family:var(--display);font-size:22px;letter-spacing:.05em;font-weight:400;margin-top:2px}
+  .band-head .l .ttl{font-family:var(--display);font-size:38px;line-height:1;letter-spacing:.005em;white-space:nowrap}
+  .band-head .l .ttl em{font-style:normal;color:var(--hot)}
+  .band-head .l .zh-bg{font-family:var(--tc);font-weight:300;font-size:11px;letter-spacing:.18em;opacity:.55;padding-left:14px;border-left:.5px solid var(--hair-st);align-self:center;white-space:nowrap}
+  .band-head .r{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+  /* ===== GITHUB GRID — operator select ===== */
+  .repo-grid{display:grid;grid-template-columns:repeat(5,1fr);border:.5px solid var(--ink);background:var(--paper)}
+  .repo-tile{position:relative;border-right:.5px solid var(--hair-st);display:flex;flex-direction:column;background:var(--paper);min-height:320px;cursor:pointer}
+  .repo-tile:last-child{border-right:0}
+  .repo-tile .top{padding:12px 14px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .repo-tile .top .idx{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;opacity:.55;font-weight:500}
+  .repo-tile .top .lang{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:2px 6px;border:.5px solid var(--ink);font-weight:500;background:#fff}
+  .repo-tile .top .lang.ts{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .repo-tile .top .lang.py{}
+  .repo-tile .art{flex:1;position:relative;margin:8px 14px 0;background:#F6F4EF;border:.5px solid var(--hair);overflow:hidden;min-height:120px}
+  .repo-tile .art .ht{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(0,0,0,.5) 1px,transparent 1.4px);background-size:5px 5px;mix-blend-mode:multiply;opacity:.3;pointer-events:none}
+  .repo-tile .art svg{position:absolute;inset:14% 18% 8% 18%;width:auto;height:auto;max-width:64%;max-height:84%}
+  .repo-tile .art .tag-stack{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:4px;z-index:2}
+  .repo-tile .art .star-big{position:absolute;right:8px;bottom:6px;font-family:var(--display);font-size:54px;line-height:.82;color:var(--ink);letter-spacing:.005em;z-index:2}
+  .repo-tile .art .star-big em{font-style:normal;color:var(--hot)}
+  .repo-tile .art .star-big sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);opacity:.7;font-weight:500;vertical-align:0;display:block;line-height:1;margin-bottom:4px}
+
+  .repo-tile .name{font-family:var(--display);font-size:24px;letter-spacing:.01em;line-height:.95;padding:12px 14px 4px;color:var(--ink);text-transform:lowercase}
+  .repo-tile .name b{font-weight:400}
+  .repo-tile .name .slash{color:var(--hot);font-weight:400;margin:0 1px}
+  .repo-tile .desc{font-family:var(--tc);font-weight:300;font-size:11.5px;line-height:1.65;letter-spacing:.06em;padding:0 14px 8px;color:#1c1c1c}
+  .repo-tile .stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 14px 8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;border-top:.5px solid var(--hair)}
+  .repo-tile .stat-row .left{display:flex;gap:10px;flex-wrap:wrap}
+  .repo-tile .stat-row .left span{display:inline-flex;align-items:center;gap:4px}
+  .repo-tile .stat-row .left b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+  .repo-tile .stat-row .when{opacity:.55}
+
+  .repo-tile .select{display:flex;align-items:stretch;border-top:1px solid var(--ink)}
+  .repo-tile .select .a{flex:1;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:9px 12px;font-weight:500;text-transform:uppercase;text-align:left;display:flex;justify-content:space-between;align-items:center}
+  .repo-tile .select .a .k{background:rgba(255,255,255,.18);padding:1px 6px}
+  .repo-tile .select .b{background:var(--hot);color:#fff;font-family:var(--display);font-size:20px;letter-spacing:.05em;padding:0 14px;display:flex;align-items:center;text-transform:uppercase}
+
+  .repo-tile.active{outline:2px solid var(--hot);outline-offset:-2px;z-index:2}
+  .repo-tile.active::before{content:"SELECTED";position:absolute;top:-12px;right:-1px;background:var(--hot);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.22em;padding:4px 8px;z-index:3;font-weight:500}
+
+  /* ===== EMAIL LIST ===== */
+  .mail-list{border:.5px solid var(--ink);background:var(--paper)}
+  .mail{display:grid;grid-template-columns:8px 50px 1.3fr 2fr 110px auto;align-items:stretch;border-bottom:.5px solid var(--hair-st);position:relative;cursor:pointer;min-height:78px}
+  .mail:last-child{border-bottom:0}
+  .mail .pri{background:var(--ink)}
+  .mail.urgent .pri{background:var(--hot)}
+  .mail.low .pri{background:rgba(10,10,10,.25)}
+  .mail .pri-n{padding:14px 6px 6px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-right:.5px solid var(--hair);font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;line-height:1.2;text-align:center;gap:4px}
+  .mail .pri-n b{font-family:var(--display);font-size:22px;letter-spacing:.04em;font-weight:400;color:var(--ink);line-height:.9}
+  .mail.urgent .pri-n b{color:var(--hot)}
+  .mail.low .pri-n b{color:rgba(10,10,10,.4)}
+
+  .mail .sender{padding:14px 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;border-right:.5px solid var(--hair);min-width:0}
+  .mail .sender .name{font-family:var(--display);font-size:18px;letter-spacing:.02em;line-height:1;text-transform:uppercase;color:var(--ink)}
+  .mail .sender .addr{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;opacity:.55;text-transform:lowercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .mail .body{padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;justify-content:center}
+  .mail .body .subj{font-family:var(--display);font-size:20px;letter-spacing:.005em;line-height:1.05;color:var(--ink)}
+  .mail .body .subj em{font-style:normal;color:var(--hot)}
+  .mail .body .ai{font-family:var(--tc);font-weight:300;font-size:11.5px;letter-spacing:.04em;line-height:1.55;color:#1a1a1a;display:flex;gap:8px;align-items:flex-start}
+  .mail .body .ai .pill{font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;padding:1.5px 5px;background:var(--ink);color:#fff;line-height:1.4;flex:none;font-weight:500;margin-top:1px}
+  .mail.urgent .body .ai .pill{background:var(--hot)}
+
+  .mail .time{padding:14px 12px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-left:.5px solid var(--hair);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;text-align:right}
+  .mail .time b{font-family:var(--display);font-size:20px;letter-spacing:.04em;font-weight:400;line-height:.95}
+  .mail .time .ago{opacity:.55}
+  .mail.urgent .time b{color:var(--hot)}
+
+  .mail .actions{display:flex;align-items:stretch;border-left:.5px solid var(--hair)}
+  .mail .actions .a{background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:0 14px;font-weight:500;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-right:.5px solid #2a2a2a}
+  .mail .actions .a .k{background:rgba(255,255,255,.18);padding:1px 6px;font-size:9px}
+  .mail .actions .b{background:var(--hot);color:#fff;font-family:var(--display);font-size:22px;letter-spacing:.04em;padding:0 16px;display:flex;align-items:center;text-transform:uppercase}
+  .mail.low .actions .b{background:var(--ink)}
+
+  .mail.read{opacity:.55}
+  .mail.read .sender .name{text-decoration:line-through;text-decoration-thickness:1px}
+
+  /* ===== YOUTUBE GRID ===== */
+  .vid-grid{display:grid;grid-template-columns:repeat(3,1fr);border:.5px solid var(--ink);background:var(--paper)}
+  .vid-tile{position:relative;border-right:.5px solid var(--hair-st);display:flex;flex-direction:column;background:var(--paper);min-height:320px;cursor:pointer}
+  .vid-tile:nth-child(3n){border-right:0}
+  .vid-tile:nth-child(n+4){border-top:.5px solid var(--hair-st)}
+  .vid-tile .thumb{position:relative;aspect-ratio:16/9;background:#222;overflow:hidden;border-bottom:.5px solid var(--hair)}
+  .vid-tile .thumb svg{position:absolute;inset:0;width:100%;height:100%}
+  .vid-tile .thumb .ht{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.18) 1px,transparent 1.4px);background-size:5px 5px;mix-blend-mode:screen;pointer-events:none}
+  .vid-tile .thumb .pl-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;background:var(--hot);display:flex;align-items:center;justify-content:center;z-index:2}
+  .vid-tile .thumb .pl-btn::after{content:"";width:0;height:0;border-style:solid;border-width:11px 0 11px 17px;border-color:transparent transparent transparent #fff;margin-left:3px}
+  .vid-tile .thumb .dur{position:absolute;right:8px;bottom:8px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:3px 7px;font-weight:500;z-index:2}
+  .vid-tile .thumb .tag-stack{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:4px;z-index:2}
+  .vid-tile .thumb .corner-no{position:absolute;right:8px;top:8px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;padding:3px 6px;font-weight:500;z-index:2}
+
+  .vid-tile .info{padding:14px 14px 0;display:flex;flex-direction:column;gap:6px;flex:1}
+  .vid-tile .info .ttl{font-family:var(--display);font-size:22px;letter-spacing:.005em;line-height:1.02;color:var(--ink)}
+  .vid-tile .info .ttl em{font-style:normal;color:var(--hot)}
+  .vid-tile .info .chan{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+
+  .vid-tile .views{display:flex;justify-content:space-between;align-items:flex-end;padding:6px 14px 8px}
+  .vid-tile .views .big{font-family:var(--display);font-size:46px;line-height:.85;letter-spacing:.005em;color:var(--ink)}
+  .vid-tile .views .big em{font-style:normal;color:var(--hot)}
+  .vid-tile .views .big sub{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.7;font-weight:500;line-height:1;margin-bottom:4px}
+  .vid-tile .views .meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;text-align:right}
+  .vid-tile .views .diff{display:flex;gap:3px;align-items:center}
+  .vid-tile .views .diff i{width:14px;height:6px;background:var(--ink);display:block}
+  .vid-tile .views .diff i.off{background:rgba(10,10,10,.18)}
+
+  .vid-tile .play{display:flex;align-items:stretch;border-top:1px solid var(--ink)}
+  .vid-tile .play .a{flex:1;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:9px 14px;font-weight:500;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .vid-tile .play .a .k{background:rgba(255,255,255,.18);padding:1px 6px}
+  .vid-tile .play .b{background:var(--hot);color:#fff;font-family:var(--display);font-size:20px;letter-spacing:.05em;padding:0 14px;display:flex;align-items:center}
+
+  /* ===== MARQUEE ===== */
+  .marquee{background:var(--paper);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);overflow:hidden;height:32px;display:flex;align-items:center}
+  .marquee .track{display:flex;gap:42px;animation:slide 50s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding-left:36px;white-space:nowrap;flex:none}
+  .marquee .track em{color:var(--hot);font-style:normal;margin:0 4px}
+  .marquee .track .sq{display:inline-block;width:6px;height:6px;background:var(--hot);margin-right:8px;vertical-align:1px}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* =================================================== */
+  /* ===== ANIMATIONS (additive — no layout impact) ===== */
+  /* =================================================== */
+
+  /* 1) page load — left slide stagger */
+  .sb{animation:sideIn .55s ease-out backwards}
+  .main > *{animation:slideIn .55s cubic-bezier(.2,.7,.2,1) backwards}
+  .main > *:nth-child(1){animation-delay:.04s}
+  .main > *:nth-child(2){animation-delay:.10s}
+  .main > *:nth-child(3){animation-delay:.16s}
+  .main > *:nth-child(4){animation-delay:.22s}
+  .main > *:nth-child(5){animation-delay:.28s}
+  .main > *:nth-child(6){animation-delay:.34s}
+  .main > *:nth-child(7){animation-delay:.40s}
+  .main > *:nth-child(8){animation-delay:.46s}
+  .main > *:nth-child(9){animation-delay:.52s}
+  .main > *:nth-child(10){animation-delay:.58s}
+  .main > *:nth-child(n+11){animation-delay:.64s}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes sideIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+
+  /* sidebar items load — small cascade after sidebar arrives */
+  .sb-item{animation:sbItem .45s ease-out backwards}
+  .sb-item:nth-of-type(1){animation-delay:.45s}
+  .sb-item:nth-of-type(2){animation-delay:.50s}
+  .sb-item:nth-of-type(3){animation-delay:.55s}
+  .sb-item:nth-of-type(4){animation-delay:.60s}
+  .sb-item:nth-of-type(5){animation-delay:.65s}
+  .sb-item:nth-of-type(6){animation-delay:.70s}
+  .sb-item:nth-of-type(7){animation-delay:.75s}
+  .sb-item:nth-of-type(8){animation-delay:.80s}
+  .sb-item:nth-of-type(9){animation-delay:.85s}
+  @keyframes sbItem{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+
+  /* tile children — repo / mail / vid stagger inside their grids */
+  .repo-tile{animation:slideIn .5s ease-out backwards}
+  .repo-tile:nth-child(1){animation-delay:.50s}
+  .repo-tile:nth-child(2){animation-delay:.56s}
+  .repo-tile:nth-child(3){animation-delay:.62s}
+  .repo-tile:nth-child(4){animation-delay:.68s}
+  .repo-tile:nth-child(5){animation-delay:.74s}
+
+  .mail{animation:slideIn .5s ease-out backwards}
+  .mail:nth-child(1){animation-delay:.55s}
+  .mail:nth-child(2){animation-delay:.60s}
+  .mail:nth-child(3){animation-delay:.65s}
+  .mail:nth-child(4){animation-delay:.70s}
+  .mail:nth-child(5){animation-delay:.75s}
+  .mail:nth-child(6){animation-delay:.80s}
+  .mail:nth-child(7){animation-delay:.85s}
+
+  .vid-tile{animation:slideIn .5s ease-out backwards}
+  .vid-tile:nth-child(1){animation-delay:.60s}
+  .vid-tile:nth-child(2){animation-delay:.66s}
+  .vid-tile:nth-child(3){animation-delay:.72s}
+  .vid-tile:nth-child(4){animation-delay:.78s}
+  .vid-tile:nth-child(5){animation-delay:.84s}
+  .vid-tile:nth-child(6){animation-delay:.90s}
+
+  /* 2) GLITCH on hover — big titles + action buttons */
+  @keyframes glitch{
+    0%,100%{transform:translate(0,0);text-shadow:none}
+    14%{transform:translate(-2px,1px);text-shadow:1.5px 0 var(--hot),-1.5px 0 rgba(10,10,10,.7)}
+    28%{transform:translate(2px,-1px);text-shadow:-1.5px 0 var(--hot),1.5px 0 rgba(10,10,10,.7)}
+    42%{transform:translate(-1px,2px);text-shadow:1px 0 var(--hot)}
+    56%{transform:translate(1px,-2px);text-shadow:-1px 0 var(--hot)}
+    70%{transform:translate(-2px,-1px);text-shadow:1.5px 0 var(--hot)}
+    84%{transform:translate(2px,1px);text-shadow:none}
+  }
+  .sb-head .logo,
+  .sec-bar .ttl,
+  .band-head .l .ttl,
+  .repo-tile .name,
+  .vid-tile .info .ttl,
+  .mail .body .subj,
+  .chip.hot, .chip.ink,
+  .repo-tile .select .a, .repo-tile .select .b,
+  .vid-tile .play .a, .vid-tile .play .b,
+  .mail .actions .a, .mail .actions .b,
+  .foot-bar .press,
+  .hud-stat{cursor:pointer}
+  .sb-head .logo:hover,
+  .sec-bar .ttl:hover,
+  .band-head .l .ttl:hover,
+  .repo-tile .name:hover,
+  .vid-tile .info .ttl:hover,
+  .mail .body .subj:hover,
+  .chip.hot:hover, .chip.ink:hover,
+  .repo-tile .select .a:hover, .repo-tile .select .b:hover,
+  .vid-tile .play .a:hover, .vid-tile .play .b:hover,
+  .mail .actions .a:hover, .mail .actions .b:hover,
+  .foot-bar .press:hover,
+  .hud-stat:hover{animation:glitch .3s steps(7,end)}
+
+  /* 3) magenta SCAN LINE on card hover */
+  .repo-tile,.vid-tile,.mail{position:relative}
+  .repo-tile > .scan,
+  .vid-tile > .scan,
+  .mail > .scan{
+    content:"";position:absolute;left:0;right:0;top:0;height:1px;
+    background:var(--hot);opacity:0;pointer-events:none;z-index:9;
+    box-shadow:0 0 6px rgba(232,0,90,.6)
+  }
+  .repo-tile:hover > .scan,
+  .vid-tile:hover > .scan,
+  .mail:hover > .scan{animation:scanDown .8s linear forwards}
+  @keyframes scanDown{
+    0%{top:0;opacity:1}
+    92%{opacity:1}
+    100%{top:100%;opacity:0}
+  }
+  /* avoid scan visually escaping the card */
+  .vid-tile{overflow:hidden}
+  .mail{overflow:hidden}
+  /* repo-tile keeps overflow visible (SELECTED label breaks out), scan is constrained by left/right anyway */
+
+  /* respect reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001s !important;animation-delay:0s !important;transition-duration:.001s !important}
+  }
+
+  /* ===== FOOT BAR ===== */
+  .foot-bar{background:var(--ink);color:#fff;padding:18px 36px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  .foot-bar .l{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+  .foot-bar .press{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+  .foot-bar .press .k{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;background:#fff;color:var(--ink);font-family:var(--mono);font-size:11px;letter-spacing:.06em;font-weight:500}
+  .foot-bar .press.hot .k{background:var(--hot);color:#fff}
+  .foot-bar .r{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.7;text-align:right;white-space:nowrap}
+
+  /* ===================================================== */
+  /* ===== RESPONSIVE — mobile + tablet adjustments  ===== */
+  /* ===================================================== */
+
+  /* Allow the frame to collapse on narrow viewports */
+  @media (max-width: 1480px){
+    .frame{width:100%;max-width:1440px}
+  }
+
+  /* ===== MOBILE (<= 768px) ===== */
+  @media (max-width: 768px){
+
+    body{min-width:320px}
+
+    .frame{
+      display:block;          /* drop the grid */
+      width:100%;
+    }
+
+    /* ---------- SIDEBAR → BOTTOM TAB BAR ---------- */
+    .sb{
+      position:fixed;left:0;right:0;bottom:0;top:auto;
+      height:62px;width:100%;
+      flex-direction:row;align-items:stretch;
+      border-right:0;border-top:1px solid var(--ink);
+      z-index:300;
+      box-shadow:0 -8px 18px rgba(10,10,10,.06);
+      align-self:auto;
+    }
+    .sb-head, .sb-meta, .sb-foot, .sb-section{display:none}
+    .sb-nav{
+      flex-direction:row;flex:1;
+      padding:0;overflow:visible;gap:0;
+    }
+    /* show only 5 tabs: HOME(2), GITHUB(5), INBOX(6), LEARN(7), MEMORY(10) */
+    .sb-nav > .sb-item:nth-child(3),   /* MONITOR */
+    .sb-nav > .sb-item:nth-child(8),   /* SIGNAL  */
+    .sb-nav > .sb-item:nth-child(11),  /* TELEMETRY */
+    .sb-nav > .sb-item:nth-child(12){  /* SETTINGS */
+      display:none;
+    }
+    .sb-item{
+      flex:1;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:8px 4px 6px;gap:3px;
+      border-left:0;border-top:3px solid transparent;
+      text-align:center;animation:none !important;
+      grid-template-columns:none;
+      position:relative;
+    }
+    .sb-item .icon{font-size:16px;opacity:.7;line-height:1}
+    .sb-item .lbl{align-items:center;line-height:1}
+    .sb-item .lbl b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;font-weight:500;text-transform:uppercase}
+    .sb-item .lbl span{display:none}
+    .sb-item .key{display:none}
+    .sb-item.active{background:var(--paper);color:var(--ink);border-left:0;border-top-color:var(--hot)}
+    .sb-item.active .icon{color:var(--hot);opacity:1}
+    .sb-item.active .lbl b{color:var(--hot)}
+    .sb-item.has-new .dot{display:block;position:absolute;right:auto;left:50%;top:8px;transform:translateX(8px);width:6px;height:6px}
+
+    /* ---------- MAIN — full width, leave room for bottom tab bar ---------- */
+    .main{padding-bottom:80px}
+
+    /* tighter horizontal padding everywhere */
+    .meta, .hud, .sec-bar, .band, .foot-bar{padding-left:16px;padding-right:16px}
+    .meta{flex-direction:column;align-items:flex-start;gap:8px;padding-top:12px;padding-bottom:12px}
+    .meta-l, .meta-r{flex-wrap:wrap;gap:8px 14px}
+
+    /* ---------- HUD horizontal scroll ---------- */
+    .hud{flex-direction:column;align-items:stretch;gap:14px;padding-top:14px;padding-bottom:16px}
+    .hud-l{
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:6px;
+      scrollbar-width:thin;
+      scrollbar-color:var(--hot) transparent;
+      mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent);
+      -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    }
+    .hud-l::-webkit-scrollbar{height:3px}
+    .hud-l::-webkit-scrollbar-track{background:transparent}
+    .hud-l::-webkit-scrollbar-thumb{background:var(--hot)}
+    .hud-stat{flex:none}
+    .hud-r{flex-wrap:wrap;gap:6px}
+
+    /* ---------- SECTION BAR ---------- */
+    .sec-bar{height:auto;min-height:44px;padding-top:8px;padding-bottom:8px;gap:10px;flex-wrap:wrap}
+    .sec-bar .num{font-size:clamp(32px, 8vw, 64px)}
+    .sec-bar .ttl{font-size:clamp(32px, 8vw, 64px);line-height:.95;white-space:normal}
+    .sec-bar .zh{display:none}
+    .sec-bar .r{display:none}
+    .sec-bar::after{width:40px}
+
+    /* ---------- BAND HEAD ---------- */
+    .band{padding-top:18px;padding-bottom:22px}
+    .band-head{flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:14px}
+    .band-head .l{flex-wrap:wrap;align-items:flex-start;gap:10px}
+    .band-head .l .ttl{font-size:clamp(32px, 6vw, 64px);line-height:.95;white-space:normal}
+    .band-head .l .zh-bg{display:none}
+    .band-head .r{flex-wrap:wrap;gap:6px;width:100%}
+    .band-head .r .chip{flex:1;justify-content:center;min-width:0}
+
+    /* ---------- GITHUB grid → 1 col ---------- */
+    .repo-grid{grid-template-columns:1fr}
+    .repo-tile{
+      border-right:0;
+      border-bottom:.5px solid var(--hair-st);
+      min-height:auto;
+    }
+    .repo-tile:last-child{border-bottom:0}
+    .repo-tile .art{min-height:160px;aspect-ratio:auto}
+    .repo-tile .art .star-big{font-size:42px}
+    .repo-tile .name{font-size:22px}
+
+    /* ---------- YOUTUBE grid → 1 col ---------- */
+    .vid-grid{grid-template-columns:1fr}
+    .vid-tile{
+      border-right:0;
+      border-bottom:.5px solid var(--hair-st);
+    }
+    .vid-tile:last-child{border-bottom:0}
+    .vid-tile:nth-child(n+4){border-top:0}
+    .vid-tile .info .ttl{font-size:20px}
+    .vid-tile .views .big{font-size:38px}
+
+    /* ---------- MAIL → stacked card per item ---------- */
+    .mail{
+      display:block;
+      border-left:8px solid var(--ink);
+      padding:14px 14px 0;
+      min-height:auto;
+    }
+    .mail.urgent{border-left-color:var(--hot)}
+    .mail.low{border-left-color:rgba(10,10,10,.28)}
+    .mail .pri{display:none}
+    .mail .pri-n{
+      display:flex;flex-direction:row;
+      padding:0 0 8px 0;border:0;gap:10px;
+      justify-content:flex-start;align-items:baseline
+    }
+    .mail .pri-n span{font-size:9px;letter-spacing:.16em;opacity:.55}
+    .mail .pri-n b{font-size:18px}
+    .mail .sender{
+      padding:0 0 6px 0;border:0;
+      flex-direction:row;align-items:baseline;
+      gap:10px;flex-wrap:wrap
+    }
+    .mail .sender .name{font-size:16px}
+    .mail .sender .addr{flex:1;text-align:right}
+    .mail .body{padding:8px 0;border-top:.5px dashed var(--hair-st)}
+    .mail .body .subj{font-size:18px;line-height:1.15}
+    .mail .body .ai{font-size:11.5px}
+    .mail .time{
+      padding:6px 0;border-left:0;border-top:.5px dashed var(--hair-st);
+      flex-direction:row;text-align:left;
+      gap:8px;align-items:baseline;justify-content:flex-start
+    }
+    .mail .time b{font-size:16px}
+    .mail .actions{
+      display:flex;width:calc(100% + 28px);
+      margin:0 -14px;border-left:0;border-top:1px solid var(--ink);
+    }
+    .mail .actions .a, .mail .actions .b{
+      flex:1;justify-content:center;padding:11px 8px;font-size:11px
+    }
+
+    /* ---------- MARQUEE ---------- */
+    .marquee{height:30px}
+    .marquee .track{font-size:10px;gap:28px}
+
+    /* ---------- FOOT BAR ---------- */
+    .foot-bar{flex-direction:column;align-items:flex-start;gap:12px;padding:16px}
+    .foot-bar .l{flex-wrap:wrap;gap:14px 18px}
+    .foot-bar .r{text-align:left;line-height:1.5;white-space:normal}
+
+    /* HUD scrollbar fade hint on right edge — mobile-first */
+  }
+
+  /* ===== smaller — 480px tighter still ===== */
+  @media (max-width: 480px){
+    .sec-bar .num,
+    .sec-bar .ttl{font-size:clamp(28px, 9vw, 56px)}
+    .band-head .l .ttl{font-size:clamp(28px, 8vw, 56px)}
+    .band-head .l .esc b{font-size:18px}
+    .hud-stat{font-size:10px}
+    .repo-tile .art .star-big{font-size:36px}
+    .vid-tile .views .big{font-size:32px}
+    .mail .body .subj{font-size:16px}
+  }
+
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sb">
+    <div class="sb-head">
+      <span class="ch tl"></span><span class="ch br hot"></span>
+      <div class="logo">ARIA<em>/</em>OS</div>
+      <div class="ver"><i></i>BUILD 1.4.7 ONLINE</div>
+    </div>
+
+    <div class="sb-meta">
+      <span>2026.05.22 ─ FRI</span>
+      <span id="clock">14:27:08</span>
+      <span>SESSION 00284</span>
+      <span>TAIPEI · 24°</span>
+    </div>
+
+    <div class="sb-nav">
+      <div class="sb-section">MAIN</div>
+      <div class="sb-item">
+        <span class="icon">◆</span>
+        <span class="lbl"><b>HOME</b><span>主頁</span></span>
+        <span class="key">H</span>
+      </div>
+      <div class="sb-item active">
+        <span class="icon">▣</span>
+        <span class="lbl"><b>MONITOR</b><span>資訊監控</span></span>
+        <span class="key">M</span>
+      </div>
+
+      <div class="sb-section">FEEDS</div>
+      <div class="sb-item has-new">
+        <span class="icon">{ }</span>
+        <span class="lbl"><b>GITHUB</b><span>倉庫 / 38</span></span>
+        <span class="key">G</span>
+        <span class="dot"></span>
+      </div>
+      <div class="sb-item has-new">
+        <span class="icon">✉</span>
+        <span class="lbl"><b>INBOX</b><span>信箱 / 07</span></span>
+        <span class="key">I</span>
+        <span class="dot"></span>
+      </div>
+      <div class="sb-item">
+        <span class="icon">▶</span>
+        <span class="lbl"><b>LEARN</b><span>學習 / YT</span></span>
+        <span class="key">L</span>
+      </div>
+      <div class="sb-item">
+        <span class="icon">♪</span>
+        <span class="lbl"><b>SIGNAL</b><span>訊號 · 推送</span></span>
+        <span class="key">S</span>
+      </div>
+
+      <div class="sb-section">SYSTEM</div>
+      <div class="sb-item">
+        <span class="icon">◐</span>
+        <span class="lbl"><b>MEMORY</b><span>記憶庫</span></span>
+        <span class="key">N</span>
+      </div>
+      <div class="sb-item">
+        <span class="icon">▤</span>
+        <span class="lbl"><b>TELEMETRY</b><span>數據</span></span>
+        <span class="key">T</span>
+      </div>
+      <div class="sb-item">
+        <span class="icon">⚙</span>
+        <span class="lbl"><b>SETTINGS</b><span>設定</span></span>
+        <span class="key">,</span>
+      </div>
+    </div>
+
+    <div class="sb-foot">
+      <div class="pl">
+        <div class="av"></div>
+        <div class="who">CHEN / 陳<span>LV.27 · ONLINE</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <span style="background:var(--ink);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;padding:5px 8px;text-transform:uppercase;font-weight:500">PRESS ESC</span>
+        <span style="background:var(--hot);color:#fff;font-family:var(--display);font-size:22px;letter-spacing:.06em;padding:1px 8px 2px;text-align:center">ESCAPE</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main">
+
+    <!-- TOP META -->
+    <div class="meta">
+      <div class="meta-l mono">
+        <span><span class="dot"></span>NEURAL LINK // ONLINE</span>
+        <span>FEED SYNC ─ 14:27 LOCAL</span>
+        <span>POLLING 6 SOURCES</span>
+      </div>
+      <div class="meta-r mono">
+        <span>LATENCY 38MS</span>
+        <span>BUILD 1.4.7</span>
+        <span style="color:var(--hot);font-weight:500">DAY 047</span>
+      </div>
+    </div>
+
+    <!-- HUD STRIP -->
+    <div class="hud">
+      <div class="hud-l">
+        <span class="hud-stat"><span class="k">REPOS</span><span class="v">38</span></span>
+        <span class="hud-stat hot"><span class="k">MAIL</span><span class="v">07</span></span>
+        <span class="hud-stat"><span class="k">NOTES</span><span class="v">142</span></span>
+        <span class="hud-stat"><span class="k">QUEUE</span><span class="v">12</span></span>
+        <span class="hud-stat"><span class="k">LEVEL</span><span class="v">12</span></span>
+        <span class="hud-stat"><span class="k">UPTIME</span><span class="v">47D</span></span>
+      </div>
+      <div class="hud-r">
+        <span>SORT — </span>
+        <span class="chip outline">RECENCY</span>
+        <span class="chip ink">PRIORITY ↵</span>
+        <span class="chip outline">SOURCE</span>
+      </div>
+    </div>
+
+    <!-- ===== §01 GITHUB ===== -->
+    <div class="sec-bar">
+      <div class="fill"></div>
+      <span class="num">№<em>01</em></span>
+      <span class="ttl">GITHUB DAILY</span>
+      <span class="zh">倉庫日報 / 今日 05 項追蹤</span>
+      <span class="r">38 STARRED · 12 SUBSCRIBED · PRESS G</span>
+    </div>
+
+    <div class="band">
+      <div class="band-head">
+        <div class="l">
+          <span class="esc">PART.01<b>RPO</b></span>
+          <span class="ttl">CHOOSE OPERATOR <em>/</em></span>
+          <span class="zh-bg">挑一個帶回家研究 — AI / Agent / RAG / Tools</span>
+        </div>
+        <div class="r">
+          <span class="chip outline">FILTER — TRENDING</span>
+          <span class="chip outline">RANGE — 24H</span>
+          <span class="chip hot">SELECT ↵</span>
+        </div>
+      </div>
+
+      <div class="repo-grid">
+
+        <!-- TILE 1 -->
+        <div class="repo-tile active" data-r="1">
+          <div class="top">
+            <span class="idx">№01 · 14:11</span>
+            <span class="lang py">PYTHON</span>
+          </div>
+          <div class="art">
+            <div class="tag-stack">
+              <span class="chip hot">AGENT</span>
+              <span class="chip ink">★ TRENDING</span>
+            </div>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#0A0A0A">
+                <circle cx="32" cy="34" r="14"/>
+                <circle cx="68" cy="34" r="14"/>
+                <path d="M14 60 L86 60 L82 92 L18 92 Z"/>
+                <rect x="42" y="44" width="16" height="8" fill="#E8005A"/>
+                <circle cx="32" cy="34" r="4" fill="#fff"/>
+                <circle cx="68" cy="34" r="4" fill="#fff"/>
+              </g>
+            </svg>
+            <div class="ht"></div>
+            <div class="star-big"><sub>★ STARS</sub>14<em>.</em>2<sub style="display:inline;font-size:14px;color:var(--ink);opacity:.6;vertical-align:8px;margin-left:2px">K</sub></div>
+          </div>
+          <div class="name"><b>aria-labs</b><span class="slash">/</span><b>swarm-os</b></div>
+          <div class="desc">100% local 多智能體編排框架，支援工具呼叫與記憶分層 · 上一次提交 11 分鐘前</div>
+          <div class="stat-row">
+            <div class="left">
+              <span>FORK <b>1.8K</b></span>
+              <span>PR <b>23</b></span>
+              <span>ISSUE <b>47</b></span>
+            </div>
+            <span class="when">+312 ★ TODAY</span>
+          </div>
+          <div class="select">
+            <span class="a">SELECT <span class="k">↵</span></span>
+            <span class="b">GO</span>
+          </div>
+        </div>
+
+        <!-- TILE 2 -->
+        <div class="repo-tile" data-r="2">
+          <div class="top">
+            <span class="idx">№02 · 13:46</span>
+            <span class="lang ts">TS</span>
+          </div>
+          <div class="art">
+            <div class="tag-stack">
+              <span class="chip ink">RAG</span>
+              <span class="chip outline" style="background:#fff">VECTOR</span>
+            </div>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#0A0A0A">
+                <rect x="14" y="14" width="22" height="22"/>
+                <rect x="40" y="14" width="22" height="22" fill="#E8005A"/>
+                <rect x="66" y="14" width="22" height="22"/>
+                <rect x="14" y="40" width="22" height="22"/>
+                <rect x="40" y="40" width="22" height="22"/>
+                <rect x="66" y="40" width="22" height="22"/>
+                <rect x="14" y="66" width="22" height="22"/>
+                <rect x="40" y="66" width="22" height="22"/>
+                <rect x="66" y="66" width="22" height="22"/>
+              </g>
+            </svg>
+            <div class="ht"></div>
+            <div class="star-big"><sub>★ STARS</sub>8<em>,</em>910</div>
+          </div>
+          <div class="name"><b>quill</b><span class="slash">/</span><b>chunker</b></div>
+          <div class="desc">語意切分器：把任何長文件切成符合 LLM 上下文窗口的、不打斷句法的 chunk</div>
+          <div class="stat-row">
+            <div class="left">
+              <span>FORK <b>612</b></span>
+              <span>PR <b>09</b></span>
+              <span>ISSUE <b>18</b></span>
+            </div>
+            <span class="when">+184 ★ TODAY</span>
+          </div>
+          <div class="select">
+            <span class="a">SELECT <span class="k">↵</span></span>
+            <span class="b">GO</span>
+          </div>
+        </div>
+
+        <!-- TILE 3 -->
+        <div class="repo-tile" data-r="3">
+          <div class="top">
+            <span class="idx">№03 · 12:30</span>
+            <span class="lang ts">TS</span>
+          </div>
+          <div class="art">
+            <div class="tag-stack">
+              <span class="chip hot">TOOLS</span>
+              <span class="chip outline" style="background:#fff">CLI</span>
+            </div>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#0A0A0A">
+                <rect x="10" y="20" width="80" height="60"/>
+                <rect x="14" y="24" width="72" height="6" fill="#fff"/>
+                <circle cx="18" cy="27" r="1.5" fill="#E8005A"/>
+                <circle cx="24" cy="27" r="1.5" fill="#0A0A0A"/>
+                <circle cx="30" cy="27" r="1.5" fill="#0A0A0A"/>
+                <rect x="18" y="36" width="40" height="2.5" fill="#fff"/>
+                <rect x="18" y="44" width="56" height="2.5" fill="#E8005A"/>
+                <rect x="18" y="52" width="32" height="2.5" fill="#fff"/>
+                <rect x="18" y="60" width="20" height="2.5" fill="#fff"/>
+                <rect x="18" y="68" width="44" height="2.5" fill="#fff"/>
+              </g>
+            </svg>
+            <div class="ht"></div>
+            <div class="star-big"><sub>★ STARS</sub>21<em>.</em>5<sub style="display:inline;font-size:14px;color:var(--ink);opacity:.6;vertical-align:8px;margin-left:2px">K</sub></div>
+          </div>
+          <div class="name"><b>tinker</b><span class="slash">/</span><b>shell-ai</b></div>
+          <div class="desc">把自然語言翻譯成 shell 指令、預覽危險操作、撤銷一切 · 已用於 Anthropic 內部</div>
+          <div class="stat-row">
+            <div class="left">
+              <span>FORK <b>3.1K</b></span>
+              <span>PR <b>54</b></span>
+              <span>ISSUE <b>72</b></span>
+            </div>
+            <span class="when">+892 ★ TODAY</span>
+          </div>
+          <div class="select">
+            <span class="a">SELECT <span class="k">↵</span></span>
+            <span class="b">GO</span>
+          </div>
+        </div>
+
+        <!-- TILE 4 -->
+        <div class="repo-tile" data-r="4">
+          <div class="top">
+            <span class="idx">№04 · 11:09</span>
+            <span class="lang py">PYTHON</span>
+          </div>
+          <div class="art">
+            <div class="tag-stack">
+              <span class="chip ink">MODEL</span>
+              <span class="chip outline" style="background:#fff">WEIGHTS</span>
+            </div>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#0A0A0A">
+                <circle cx="50" cy="50" r="32"/>
+                <circle cx="50" cy="50" r="22" fill="#F6F4EF"/>
+                <circle cx="50" cy="50" r="14"/>
+                <circle cx="50" cy="50" r="6" fill="#E8005A"/>
+                <rect x="48" y="6" width="4" height="14"/>
+                <rect x="48" y="80" width="4" height="14"/>
+                <rect x="6" y="48" width="14" height="4"/>
+                <rect x="80" y="48" width="14" height="4"/>
+              </g>
+            </svg>
+            <div class="ht"></div>
+            <div class="star-big"><sub>★ STARS</sub>5<em>,</em>043</div>
+          </div>
+          <div class="name"><b>orbit</b><span class="slash">/</span><b>tiny-7b</b></div>
+          <div class="desc">7B 參數的指令模型，量化後可在 16GB MacBook 上跑。速度 38 tok/s</div>
+          <div class="stat-row">
+            <div class="left">
+              <span>FORK <b>284</b></span>
+              <span>PR <b>06</b></span>
+              <span>ISSUE <b>11</b></span>
+            </div>
+            <span class="when">+76 ★ TODAY</span>
+          </div>
+          <div class="select">
+            <span class="a">SELECT <span class="k">↵</span></span>
+            <span class="b">GO</span>
+          </div>
+        </div>
+
+        <!-- TILE 5 -->
+        <div class="repo-tile" data-r="5">
+          <div class="top">
+            <span class="idx">№05 · 09:22</span>
+            <span class="lang">RUST</span>
+          </div>
+          <div class="art">
+            <div class="tag-stack">
+              <span class="chip hot">EVAL</span>
+              <span class="chip ink">★ NEW</span>
+            </div>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#0A0A0A">
+                <rect x="10" y="74" width="14" height="14"/>
+                <rect x="28" y="62" width="14" height="26"/>
+                <rect x="46" y="44" width="14" height="44"/>
+                <rect x="64" y="28" width="14" height="60" fill="#E8005A"/>
+                <rect x="82" y="14" width="10" height="74"/>
+                <path d="M14 32 L92 14" stroke="#0A0A0A" stroke-width="1.5" fill="none"/>
+              </g>
+            </svg>
+            <div class="ht"></div>
+            <div class="star-big"><sub>★ STARS</sub>3<em>,</em>287</div>
+          </div>
+          <div class="name"><b>nibble</b><span class="slash">/</span><b>arena</b></div>
+          <div class="desc">LLM 對打評測平台：盲測、雙盲、人類偏好打分。每月 2 萬場對局</div>
+          <div class="stat-row">
+            <div class="left">
+              <span>FORK <b>421</b></span>
+              <span>PR <b>17</b></span>
+              <span>ISSUE <b>33</b></span>
+            </div>
+            <span class="when">+540 ★ TODAY</span>
+          </div>
+          <div class="select">
+            <span class="a">SELECT <span class="k">↵</span></span>
+            <span class="b">GO</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MARQUEE -->
+    <div class="marquee">
+      <div class="track">
+        <span><span class="sq"></span>GITHUB SYNCED <em>/</em> 38 REPOS · 5 NEW STARS THIS HOUR</span>
+        <span><span class="sq"></span>INBOX <em>07</em> UNREAD <em>/</em> 03 FLAGGED CRITICAL</span>
+        <span><span class="sq"></span>YOUTUBE <em>09</em> NEW UPLOADS FROM SUBS <em>/</em> ARIA SUMMARIZED</span>
+        <span><span class="sq"></span>FEED LATENCY 38MS <em>/</em> POLLING EVERY 30S</span>
+        <span><span class="sq"></span>GITHUB SYNCED <em>/</em> 38 REPOS · 5 NEW STARS THIS HOUR</span>
+        <span><span class="sq"></span>INBOX <em>07</em> UNREAD <em>/</em> 03 FLAGGED CRITICAL</span>
+        <span><span class="sq"></span>YOUTUBE <em>09</em> NEW UPLOADS FROM SUBS</span>
+        <span><span class="sq"></span>FEED LATENCY 38MS <em>/</em> POLLING EVERY 30S</span>
+      </div>
+    </div>
+
+    <!-- ===== §02 INBOX ===== -->
+    <div class="sec-bar ink">
+      <div class="fill"></div>
+      <span class="num">№<em>02</em></span>
+      <span class="ttl">INBOX — PRIORITY</span>
+      <span class="zh">優先信箱 / 由 ARIA 排序</span>
+      <span class="r">07 UNREAD · 03 CRITICAL · PRESS I</span>
+    </div>
+
+    <div class="band">
+      <div class="band-head">
+        <div class="l">
+          <span class="esc">PART.02<b>BOX</b></span>
+          <span class="ttl">MISSION QUEUE <em>/</em></span>
+          <span class="zh-bg">挑一個處理 · ESC 跳過 · ↵ 開啟 / 回覆</span>
+        </div>
+        <div class="r">
+          <span class="chip outline">FILTER — TODAY</span>
+          <span class="chip outline">SHOW — UNREAD</span>
+          <span class="chip hot">AI DRAFT ↵</span>
+        </div>
+      </div>
+
+      <div class="mail-list">
+
+        <div class="mail urgent">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>01</b></div>
+          <div class="sender">
+            <span class="name">KIM TANAKA</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f59e9c98b59481999486db868180919c9a">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">Q2 PRD § 5 — <em>需要你今晚之前回覆</em></span>
+            <span class="ai"><span class="pill">ARIA</span>Kim 對北極星指標的三點反對已整理：① 取樣偏新用戶 ② 忽略付費權重 ③ 未對齊 Q1 OKR。她希望你在草稿中明確回應。</span>
+          </div>
+          <div class="time"><b>14:11</b><span class="ago">16 MIN AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail urgent">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>02</b></div>
+          <div class="sender">
+            <span class="name">GITHUB / NOREPLY</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1779786572677b6e57707e637f62753974787a">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">SECURITY ALERT — <em>aria-labs/swarm-os</em> · 1 high vuln</span>
+            <span class="ai"><span class="pill">ARIA</span>node-fetch &lt; 2.6.7 有原型污染風險。已備好 dependabot PR；只需點 merge。</span>
+          </div>
+          <div class="time"><b>13:46</b><span class="ago">41 MIN AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>03</b></div>
+          <div class="sender">
+            <span class="name">LIANG WEI</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9b5b0b8b7be99bcb7bef7b8adb5b8aaf7aaadacbdb0b6">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">15:30 同步議程</span>
+            <span class="ai"><span class="pill">ARIA</span>三項議題：估算 Atlas §5 工程量 · 風險清單 · Q3 排序。我已草擬你的回覆版本，需要的話按 READY 直接送出。</span>
+          </div>
+          <div class="time"><b>12:30</b><span class="ago">2H AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>04</b></div>
+          <div class="sender">
+            <span class="name">STRIPE BILLING</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cfef5f0f0f5f2fbdcefe8eef5ecf9b2fff3f1">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">RECEIPT — $US 240.00 · API CREDITS</span>
+            <span class="ai"><span class="pill">ARIA</span>本月 API 用量比上月降 14%。發票已歸檔到「2026 / 工具支出」。無需操作。</span>
+          </div>
+          <div class="time"><b>11:08</b><span class="ago">3H AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail low read">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>05</b></div>
+          <div class="sender">
+            <span class="name">HSIAO CHIN</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2c445f454d436c4d58404d5f025f5859484543">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">週五 wine night?</span>
+            <span class="ai"><span class="pill">ARIA</span>非工作信件。Hsiao 提議週五下班後信義店家小聚。你週五行程到 20:00 是 dry-clean，之後有空。</span>
+          </div>
+          <div class="time"><b>09:54</b><span class="ago">4H AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail low">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>06</b></div>
+          <div class="sender">
+            <span class="name">ANKI WEB</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6b8b9a2bfb0bfb5b7a2bfb9b8a596b7b8bdbfa1b3b4f8b8b3a2">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">DAILY DIGEST — 30 cards due today</span>
+            <span class="ai"><span class="pill">ARIA</span>含 7 個你常忘的 N2 漢字（遭遇 · 範疇 · 委ねる · 滞る · 醸す · 賄う · 矯正）。建議晚上 22:00 排入。</span>
+          </div>
+          <div class="time"><b>08:00</b><span class="ago">6H AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+        <div class="mail low read">
+          <div class="pri"></div>
+          <div class="pri-n"><span>PRI</span><b>07</b></div>
+          <div class="sender">
+            <span class="name">THE BROWSER COMPANY</span>
+            <span class="addr"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5e303b292d323b2a2a3b2c1e2a363b3c2c31292d3b2c703d31">[email&#160;protected]</a></span>
+          </div>
+          <div class="body">
+            <span class="subj">週五速遞 · 5 篇文章</span>
+            <span class="ai"><span class="pill">ARIA</span>3 篇與 Atlas 重構相關（已加入記憶庫）。其餘 2 篇生活向，不緊急。</span>
+          </div>
+          <div class="time"><b>07:30</b><span class="ago">7H AGO</span></div>
+          <div class="actions">
+            <span class="a">ESC <span class="k">SKIP</span></span>
+            <span class="b">READY ↵</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== §03 LEARN ===== -->
+    <div class="sec-bar">
+      <div class="fill"></div>
+      <span class="num">№<em>03</em></span>
+      <span class="ttl">LEARN — YOUTUBE</span>
+      <span class="zh">學習頻道 / 今日推薦 06 部</span>
+      <span class="r">09 NEW · 03 IN QUEUE · PRESS L</span>
+    </div>
+
+    <div class="band" style="padding-bottom:36px">
+      <div class="band-head">
+        <div class="l">
+          <span class="esc">PART.03<b>VID</b></span>
+          <span class="ttl">STAGE SELECT <em>/</em></span>
+          <span class="zh-bg">關卡選擇 · 難度由 ★ 顯示 · ARIA 已產生摘要</span>
+        </div>
+        <div class="r">
+          <span class="chip outline">FILTER — AI / DEV</span>
+          <span class="chip outline">LENGTH — &lt;30 MIN</span>
+          <span class="chip hot">PLAY ↵</span>
+        </div>
+      </div>
+
+      <div class="vid-grid">
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#0A0A0A"/>
+              <g fill="#E8005A"><rect x="40" y="64" width="240" height="6"/></g>
+              <g fill="#fff" font-family="Bebas Neue" font-size="42" letter-spacing="2"><text x="40" y="120">AGENT 2.0</text></g>
+              <g fill="#888" font-family="DM Mono" font-size="9"><text x="40" y="140">PART.03 — THE TOOL LAYER</text></g>
+              <g fill="#fff" opacity=".18"><circle cx="240" cy="40" r="60"/></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip hot">AI</span>
+              <span class="chip ink">★ TRENDING</span>
+            </div>
+            <span class="corner-no">№01</span>
+            <div class="pl-btn"></div>
+            <span class="dur">22:47</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">AGENT 2.0 — THE <em>TOOL LAYER</em></div>
+            <div class="chan">@ARIA LAB · 14:09 · 18 MIN AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>184<em>K</em></div>
+            <div class="meta">
+              <span>★ 9.4 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i></i><i class="off"></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#161616"/>
+              <g fill="#E8005A"><circle cx="240" cy="60" r="30"/></g>
+              <g fill="#fff" opacity=".75"><circle cx="240" cy="60" r="14"/></g>
+              <g fill="#fff" font-family="Bebas Neue" font-size="36" letter-spacing="2"><text x="30" y="140">SHADER WORLD</text></g>
+              <g fill="#888" font-family="DM Mono" font-size="9"><text x="30" y="158">UNREAL · NANITE · LUMEN</text></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip ink">3D GAME</span>
+              <span class="chip outline" style="background:#fff">UNREAL</span>
+            </div>
+            <span class="corner-no">№02</span>
+            <div class="pl-btn"></div>
+            <span class="dur">38:14</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">SHADER WORLD <em>—</em> A REAL-TIME PIPELINE TOUR</div>
+            <div class="chan">@BLENDER GUTS · 13:01 · 1H AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>97<em>.</em>2<sub style="display:inline;font-size:14px;color:var(--ink);opacity:.6;vertical-align:8px;margin-left:2px">K</sub></div>
+            <div class="meta">
+              <span>★ 8.7 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#0A0A0A"/>
+              <g fill="#fff" opacity=".08"><rect x="20" y="20" width="60" height="40"/><rect x="100" y="20" width="60" height="40"/><rect x="180" y="20" width="120" height="40"/><rect x="20" y="80" width="200" height="20"/></g>
+              <g fill="#E8005A" font-family="DM Mono" font-size="14"><text x="22" y="130">$ npm i swarm-os</text></g>
+              <g fill="#fff" font-family="DM Mono" font-size="12"><text x="22" y="150">+ 142 packages added</text></g>
+              <g fill="#fff" font-family="Bebas Neue" font-size="22" letter-spacing="2"><text x="22" y="172">BUILD A LOCAL AGENT IN 8 MIN</text></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip hot">DEV</span>
+              <span class="chip ink">CODE-ALONG</span>
+            </div>
+            <span class="corner-no">№03</span>
+            <div class="pl-btn"></div>
+            <span class="dur">08:24</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">BUILD A LOCAL AGENT <em>IN 8 MIN</em></div>
+            <div class="chan">@TINKER · 11:30 · 3H AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>312<em>K</em></div>
+            <div class="meta">
+              <span>★ 9.6 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#1A1A1A"/>
+              <g fill="#fff">
+                <rect x="60" y="40" width="200" height="6"/>
+                <rect x="60" y="60" width="160" height="6" opacity=".7"/>
+                <rect x="60" y="80" width="220" height="6" opacity=".5"/>
+              </g>
+              <g fill="#E8005A"><rect x="60" y="110" width="80" height="20"/></g>
+              <g fill="#fff" font-family="DM Mono" font-size="11"><text x="68" y="124">DESIGN.SYSTEM</text></g>
+              <g fill="#888" font-family="DM Mono" font-size="9"><text x="60" y="155">FIGMA · TOKENS · GRID</text></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip ink">DESIGN</span>
+              <span class="chip outline" style="background:#fff">TOKENS</span>
+            </div>
+            <span class="corner-no">№04</span>
+            <div class="pl-btn"></div>
+            <span class="dur">14:52</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">DESIGN TOKENS <em>—</em> A NEW MENTAL MODEL</div>
+            <div class="chan">@MIDDAY DESIGN · 10:14 · 4H AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>48<em>.</em>0<sub style="display:inline;font-size:14px;color:var(--ink);opacity:.6;vertical-align:8px;margin-left:2px">K</sub></div>
+            <div class="meta">
+              <span>★ 8.2 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i class="off"></i><i class="off"></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#0A0A0A"/>
+              <g fill="#E8005A"><polygon points="20,160 80,40 140,140 200,60 280,160"/></g>
+              <g stroke="#fff" stroke-width="1" fill="none" opacity=".4">
+                <line x1="0" y1="40" x2="320" y2="40"/>
+                <line x1="0" y1="80" x2="320" y2="80"/>
+                <line x1="0" y1="120" x2="320" y2="120"/>
+              </g>
+              <g fill="#fff" font-family="Bebas Neue" font-size="32" letter-spacing="2"><text x="20" y="174">TINY 7B BENCHMARKS</text></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip hot">AI</span>
+              <span class="chip ink">EVAL</span>
+            </div>
+            <span class="corner-no">№05</span>
+            <div class="pl-btn"></div>
+            <span class="dur">19:38</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">TINY 7B — <em>HOW IT BEATS</em> 70B AT MATH</div>
+            <div class="chan">@ORBIT · 09:42 · 5H AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>61<em>K</em></div>
+            <div class="meta">
+              <span>★ 9.1 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i></i><i class="off"></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+        <div class="vid-tile">
+          <div class="thumb">
+            <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="180" fill="#181818"/>
+              <g fill="#fff" opacity=".18">
+                <circle cx="50" cy="50" r="10"/><circle cx="100" cy="80" r="6"/><circle cx="160" cy="60" r="14"/><circle cx="240" cy="100" r="8"/><circle cx="280" cy="50" r="5"/>
+                <line x1="50" y1="50" x2="160" y2="60" stroke="#fff" stroke-width="1"/>
+                <line x1="100" y1="80" x2="160" y2="60" stroke="#fff" stroke-width="1"/>
+                <line x1="160" y1="60" x2="240" y2="100" stroke="#fff" stroke-width="1"/>
+                <line x1="240" y1="100" x2="280" y2="50" stroke="#fff" stroke-width="1"/>
+              </g>
+              <g fill="#E8005A"><circle cx="160" cy="60" r="6"/></g>
+              <g fill="#fff" font-family="Bebas Neue" font-size="34" letter-spacing="2"><text x="20" y="160">GRAPH MEMORY</text></g>
+              <g fill="#888" font-family="DM Mono" font-size="9"><text x="20" y="174">FROM RAG TO RELATIONAL</text></g>
+            </svg>
+            <div class="tag-stack">
+              <span class="chip ink">RAG</span>
+              <span class="chip outline" style="background:#fff">GRAPH</span>
+            </div>
+            <span class="corner-no">№06</span>
+            <div class="pl-btn"></div>
+            <span class="dur">27:01</span>
+            <div class="ht"></div>
+          </div>
+          <div class="info">
+            <div class="ttl">FROM RAG TO <em>GRAPH MEMORY</em></div>
+            <div class="chan">@QUILL · 08:30 · 6H AGO</div>
+          </div>
+          <div class="views">
+            <div class="big"><sub>VIEWS</sub>22<em>.</em>4<sub style="display:inline;font-size:14px;color:var(--ink);opacity:.6;vertical-align:8px;margin-left:2px">K</sub></div>
+            <div class="meta">
+              <span>★ 8.9 / 10</span>
+              <span class="diff">DIFF&nbsp;<i></i><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+          <div class="play"><span class="a">QUEUE <span class="k">Q</span></span><span class="b">PLAY ↵</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========== FOOT ========== -->
+    <div class="foot-bar">
+      <div class="l">
+        <span class="press"><span class="k">↵</span> SELECT</span>
+        <span class="press"><span class="k">ESC</span> ESCAPE</span>
+        <span class="press"><span class="k">↑</span><span class="k">↓</span> NAV</span>
+        <span class="press hot"><span class="k">G</span> GITHUB</span>
+        <span class="press"><span class="k">I</span> INBOX</span>
+        <span class="press"><span class="k">L</span> LEARN</span>
+        <span class="press"><span class="k">/</span> SEARCH</span>
+      </div>
+      <div class="r">© 2026 ARIA OS · BUILD 1.4.7 · FEED LATENCY 38MS</div>
+    </div>
+
+  </main>
+
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // live clock
+  const clock = document.getElementById('clock');
+  function tick(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,'0');
+    clock.textContent = p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+
+  // sidebar nav
+  document.querySelectorAll('.sb-item').forEach(it => {
+    it.addEventListener('click', () => {
+      document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
+      it.classList.add('active');
+    });
+  });
+
+  // repo tile select
+  document.querySelectorAll('.repo-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.repo-tile').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+    });
+  });
+
+  // mail click → read
+  document.querySelectorAll('.mail').forEach(m => {
+    m.addEventListener('click', e => {
+      if (e.target.closest('.actions')) return;
+      m.classList.toggle('read');
+    });
+  });
+
+  // ===== inject scan-line element into every card so hover scan works =====
+  document.querySelectorAll('.repo-tile, .vid-tile, .mail').forEach(el => {
+    const s = document.createElement('i');
+    s.className = 'scan';
+    el.appendChild(s);
+  });
+  // restart scan animation reliably on each enter
+  document.querySelectorAll('.repo-tile, .vid-tile, .mail').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      const s = el.querySelector(':scope > .scan');
+      if (!s) return;
+      s.style.animation = 'none';
+      // force reflow
+      void s.offsetWidth;
+      s.style.animation = '';
+    });
+  });
+
+  // ===== countUp on numbers (HUD stats + mail PRI labels) =====
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+  function countUp(el, opts){
+    opts = opts || {};
+    const original = el.textContent.trim();
+    const m = original.match(/^(\D*?)([\d,]+(?:\.\d+)?)(\D*)$/);
+    if (!m) return;
+    const prefix = m[1], numStr = m[2], suffix = m[3];
+    const target = parseFloat(numStr.replace(/,/g,''));
+    const hasComma = numStr.includes(',');
+    const decimals = (numStr.split('.')[1] || '').length;
+    const padLen = numStr.split('.')[0].replace(/,/g,'').length;
+    const padZero = /^0/.test(numStr) && !decimals;
+    const duration = opts.duration || 1200;
+    const delay = opts.delay || 0;
+    if (reduce){ return; }
+    el.textContent = prefix + (padZero ? '0'.repeat(padLen) : '0') + suffix;
+    let start;
+    function frame(now){
+      if (!start) start = now;
+      const t = Math.min(1, (now - start) / duration);
+      const v = target * easeOut(t);
+      let s = decimals ? v.toFixed(decimals) : Math.floor(v).toString();
+      if (hasComma){
+        const [a,b] = s.split('.');
+        s = parseInt(a,10).toLocaleString('en-US') + (b ? '.'+b : '');
+      }
+      if (padZero) s = s.padStart(padLen, '0');
+      el.textContent = prefix + s + suffix;
+      if (t < 1) requestAnimationFrame(frame);
+      else el.textContent = original;
+    }
+    setTimeout(() => requestAnimationFrame(frame), delay);
+  }
+
+  // HUD stat chips
+  document.querySelectorAll('.hud-stat .v').forEach((el, i) => {
+    countUp(el, { delay: 350 + i * 70, duration: 1100 });
+  });
+  // mail PRI numbers
+  document.querySelectorAll('.mail .pri-n b').forEach((el, i) => {
+    countUp(el, { delay: 700 + i * 50, duration: 700 });
+  });
+  // repo "FORK / PR / ISSUE" inline values
+  document.querySelectorAll('.repo-tile .stat-row .left b').forEach((el, i) => {
+    countUp(el, { delay: 800 + i * 30, duration: 900 });
+  });
+</script>
+</body>
+</html>
