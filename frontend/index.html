@@ -1324,20 +1324,15 @@
     const title = (v.title||'').toUpperCase();
     const channel = (v.channel||'').toUpperCase();
     const score = v.value_score || 5;
-    const hv = h(v.video_id||v.title||'');
-    const bgs = ['#0A0A0A','#161616','#1A1A1A','#181818','#111'];
-    const bg = bgs[hv % bgs.length];
     const bars = Array.from({length:5},(_,i)=>`<i${i<Math.round(score/2)?'':' class="off"'}></i>`).join('');
-    const svg = `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <rect width="320" height="180" fill="${bg}"/>
-      <g fill="#E8005A"><rect x="40" y="66" width="240" height="5"/></g>
-      <g fill="#fff" font-family="Bebas Neue" font-size="34" letter-spacing="2"><text x="40" y="118">${esc(title.slice(0,22))}</text></g>
-      <g fill="#888" font-family="DM Mono" font-size="9"><text x="40" y="140">${esc(channel.slice(0,32))}</text></g>
-      <g fill="#fff" opacity=".06"><circle cx="${200+(hv%80)}" cy="${40+(hv%30)}" r="70"/></g>
-    </svg>`;
+    const vid = v.video_id || '';
+    // 從 URL 抓出 video ID（若 video_id 欄位為空）
+    const resolvedId = vid || (v.url ? new URLSearchParams(v.url.split('?')[1]).get('v') : '');
+    const thumbStyle = resolvedId
+      ? `background-image:url('https://i.ytimg.com/vi/${esc(resolvedId)}/hqdefault.jpg');background-size:cover;background-position:center;`
+      : `background:#111;`;
     return `<div class="vid-tile" data-url="${esc(v.url||'#')}">
-      <div class="thumb">
-        ${svg}
+      <div class="thumb" style="${thumbStyle}">
         <div class="tag-stack"><span class="chip hot">AI</span></div>
         <span class="corner-no">№${String(idx+1).padStart(2,'0')}</span>
         <div class="pl-btn"></div>
