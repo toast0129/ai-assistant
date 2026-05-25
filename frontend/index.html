@@ -210,6 +210,12 @@
 
   /* ===== YOUTUBE GRID ===== */
   .vid-grid{display:grid;grid-template-columns:repeat(3,1fr);border:.5px solid var(--ink);background:var(--paper)}
+  .vid-pager{display:flex;align-items:center;gap:6px;padding:16px 20px;border:.5px solid var(--ink);border-top:0;background:var(--paper)}
+  .pg-btn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:6px 12px;border:.5px solid var(--ink);cursor:pointer;background:transparent;transition:background .15s}
+  .pg-btn:hover:not(:disabled){background:var(--ink);color:#fff}
+  .pg-btn.active{background:var(--ink);color:#fff}
+  .pg-btn:disabled{opacity:.25;cursor:default}
+  .pg-info{font-family:var(--mono);font-size:10px;letter-spacing:.14em;opacity:.5;margin-left:auto}
   .vid-tile{position:relative;border-right:.5px solid var(--hair-st);display:flex;flex-direction:column;background:var(--paper);min-height:320px;cursor:pointer}
   .vid-tile:nth-child(3n){border-right:0}
   .vid-tile:nth-child(n+4){border-top:.5px solid var(--hair-st)}
@@ -1174,6 +1180,10 @@
         </div>
 
       </div>
+
+      <!-- 分頁 -->
+      <div id="vid-pager" class="vid-pager"></div>
+
     </div>
 
     </div>
@@ -1375,16 +1385,50 @@
     }
 
 
-    // YouTube
+    // YouTube (with pagination)
     try {
-      const data = await fetch('/api/youtube/recommendations?limit=6').then(r=>r.json());
-      vidGrid.innerHTML = data.length ? data.map((v,i)=>vidTile(v,i)).join('') : '<div style="padding:36px;font-family:var(--mono);font-size:11px;opacity:.4">尚無資料 — 請先執行 /api/youtube/run</div>';
-      vidGrid.querySelectorAll('.vid-tile').forEach(t=>{
-        t.addEventListener('click',()=>{
-          const url = t.dataset.url;
-          if(url && url!=='#') window.open(url,'_blank');
+      const allVids = await fetch('/api/youtube/recommendations?limit=20').then(r=>r.json());
+      const PER_PAGE = 6;
+      let currentPage = 1;
+
+      function renderVids(){
+        if(!allVids.length){
+          vidGrid.innerHTML = '<div style="padding:36px;font-family:var(--mono);font-size:11px;opacity:.4">尚無資料 — 請先執行 /api/youtube/run</div>';
+          const pg = document.getElementById('vid-pager'); if(pg) pg.innerHTML='';
+          return;
+        }
+        const totalPages = Math.ceil(allVids.length / PER_PAGE);
+        const start = (currentPage - 1) * PER_PAGE;
+        const pageVids = allVids.slice(start, start + PER_PAGE);
+
+        vidGrid.innerHTML = pageVids.map((v,i)=>vidTile(v, start+i)).join('');
+        vidGrid.querySelectorAll('.vid-tile').forEach(t=>{
+          t.addEventListener('click',()=>{
+            const url = t.dataset.url;
+            if(url && url!=='#') window.open(url,'_blank');
+          });
         });
-      });
+        initScan();
+
+        // Render pager
+        const pager = document.getElementById('vid-pager');
+        if(!pager) return;
+        let html = `<button class="pg-btn" ${currentPage===1?'disabled':''} onclick="window.__vidPage(${currentPage-1})">&#8592;</button>`;
+        for(let p=1;p<=totalPages;p++){
+          html += `<button class="pg-btn${p===currentPage?' active':''}" onclick="window.__vidPage(${p})">${p}</button>`;
+        }
+        html += `<button class="pg-btn" ${currentPage===totalPages?'disabled':''} onclick="window.__vidPage(${currentPage+1})">&#8594;</button>`;
+        html += `<span class="pg-info">${start+1}–${Math.min(start+PER_PAGE,allVids.length)} / ${allVids.length}</span>`;
+        pager.innerHTML = html;
+      }
+
+      window.__vidPage = function(p){
+        currentPage = p;
+        renderVids();
+        document.getElementById('vid-grid').scrollIntoView({behavior:'smooth', block:'start'});
+      };
+
+      renderVids();
     } catch(e){
       vidGrid.innerHTML = '<div style="padding:36px;font-family:var(--mono);font-size:11px;opacity:.4">載入失敗，請稍後重試</div>';
     }

@@ -55,14 +55,22 @@ def job_github_digest():
 def job_youtube_curator():
     """Search YouTube for AI + 3D gamedev videos, filter by Claude."""
     import httpx
-    queries = ["AI agent 2025", "RAG LLM tutorial", "Blender game design", "Unreal Engine 5 2025"]
+    queries = [
+        "AI agent tutorial 2025",
+        "RAG LLM tutorial 2025",
+        "Blender game design tutorial",
+        "Unreal Engine 5 2025",
+        "MCP Claude AI tools",
+        "LangChain LangGraph tutorial",
+        "generative AI project tutorial",
+    ]
     videos = []
 
     for q in queries:
         res = httpx.get(
             "https://www.googleapis.com/youtube/v3/search",
             params={"part": "snippet", "q": q, "type": "video",
-                    "maxResults": 8, "key": settings.youtube_api_key},
+                    "maxResults": 10, "key": settings.youtube_api_key},
         ).json()
         for item in res.get("items", []):
             videos.append({
@@ -76,8 +84,8 @@ def job_youtube_curator():
     seen_ids = set()
     unique = [v for v in videos if v["video_id"] not in seen_ids and not seen_ids.add(v["video_id"])]
 
-    user_msg = "\n".join([f"{v['title']} ({v['channel']}): {v['description'][:100]}" for v in unique])
-    results = call_claude(YOUTUBE_CURATOR_SYSTEM, user_msg, "youtube", max_tokens=4096)
+    user_msg = "\n".join([f"{v['title']} ({v['channel']}): {v['description'][:100]}" for v in unique[:50]])
+    results = call_claude(YOUTUBE_CURATOR_SYSTEM, user_msg, "youtube", max_tokens=8192)
 
     for item in results:
         vid_data = next((v for v in unique if v["title"] == item.get("title")), {})
