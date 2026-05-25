@@ -53,16 +53,19 @@ def job_github_digest():
 
 
 def job_youtube_curator():
-    """Search YouTube for AI + 3D gamedev videos, filter by Claude."""
+    """Search YouTube for AI + 3D gamedev videos (Chinese/English), filter by Claude."""
     import httpx
     queries = [
+        # English
         "AI agent tutorial 2025",
         "RAG LLM tutorial 2025",
-        "Blender game design tutorial",
-        "Unreal Engine 5 2025",
-        "MCP Claude AI tools",
-        "LangChain LangGraph tutorial",
-        "generative AI project tutorial",
+        "MCP Claude tools tutorial",
+        "Unreal Engine 5 tutorial 2025",
+        # Chinese
+        "AI 教學 2025",
+        "大型語言模型 LLM 教程",
+        "Blender 3D 教學",
+        "遊戲開發 Unity Unreal 教學",
     ]
     videos = []
 
@@ -84,7 +87,17 @@ def job_youtube_curator():
     seen_ids = set()
     unique = [v for v in videos if v["video_id"] not in seen_ids and not seen_ids.add(v["video_id"])]
 
-    user_msg = "\n".join([f"{v['title']} ({v['channel']}): {v['description'][:100]}" for v in unique[:50]])
+    # 讀取使用者偏好 URLs
+    try:
+        prefs_res = supabase.table("youtube_prefs").select("url").execute()
+        pref_urls = [p["url"] for p in (prefs_res.data or [])]
+    except Exception:
+        pref_urls = []
+
+    user_msg = "\n".join([f"{v['title']} ({v['channel']}): {v['description'][:100]}" for v in unique[:60]])
+    if pref_urls:
+        user_msg += "\n\n【使用者偏好參考】\n" + "\n".join(pref_urls[:15])
+
     results = call_claude(YOUTUBE_CURATOR_SYSTEM, user_msg, "youtube", max_tokens=8192)
 
     for item in results:

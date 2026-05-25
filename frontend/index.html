@@ -216,6 +216,24 @@
   .pg-btn.active{background:var(--ink);color:#fff}
   .pg-btn:disabled{opacity:.25;cursor:default}
   .pg-info{font-family:var(--mono);font-size:10px;letter-spacing:.14em;opacity:.5;margin-left:auto}
+  .pref-panel{border:.5px solid var(--ink);border-top:0;background:var(--paper);margin-bottom:40px}
+  .pref-toggle{width:100%;text-align:left;padding:12px 20px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:transparent;border:0;cursor:pointer;display:flex;align-items:center;gap:10px;opacity:.6}
+  .pref-toggle:hover{opacity:1;background:rgba(10,10,10,.04)}
+  .pref-toggle span{font-size:9px;transition:transform .2s}
+  .pref-toggle.open span{transform:rotate(90deg)}
+  .pref-body{padding:20px;border-top:.5px solid var(--hair)}
+  .pref-desc{font-family:var(--tc);font-size:12px;opacity:.55;line-height:1.6;margin-bottom:14px}
+  .pref-textarea{width:100%;height:90px;font-family:var(--mono);font-size:11px;padding:10px 12px;border:.5px solid var(--ink);background:var(--bg);resize:vertical;outline:none;line-height:1.7}
+  .pref-textarea:focus{background:#fff}
+  .pref-actions{display:flex;align-items:center;gap:12px;margin-top:10px}
+  .pref-save{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:7px 20px;background:var(--ink);color:#fff;border:0;cursor:pointer;text-transform:uppercase}
+  .pref-save:hover{background:var(--hot)}
+  .pref-status{font-family:var(--mono);font-size:10px;opacity:.5}
+  .pref-list{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+  .pref-item{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;padding:6px 10px;background:var(--bg);border:.5px solid var(--hair)}
+  .pref-item span{flex:1;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pref-del{font-size:11px;opacity:.4;cursor:pointer;padding:2px 6px;border:.5px solid transparent}
+  .pref-del:hover{opacity:1;border-color:var(--hot);color:var(--hot)}
   .vid-tile{position:relative;border-right:.5px solid var(--hair-st);display:flex;flex-direction:column;background:var(--paper);min-height:320px;cursor:pointer}
   .vid-tile:nth-child(3n){border-right:0}
   .vid-tile:nth-child(n+4){border-top:.5px solid var(--hair-st)}
@@ -1186,6 +1204,22 @@
 
     </div>
 
+    <!-- 偏好設定 -->
+    <div class="pref-panel">
+      <button class="pref-toggle" onclick="togglePrefs(this)">
+        <span>▶</span> 個人化偏好設定 — 貼上喜歡的影片讓 AI 更了解你
+      </button>
+      <div class="pref-body" id="pref-body" style="display:none">
+        <p class="pref-desc">貼上你喜歡的 YouTube 影片網址（一行一個），下次執行推薦時 AI 會參考這些影片的風格與主題來提高相似內容的分數。</p>
+        <textarea id="pref-input" class="pref-textarea" placeholder="https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=..."></textarea>
+        <div class="pref-actions">
+          <button class="pref-save" onclick="savePrefs()">儲存</button>
+          <span id="pref-status" class="pref-status"></span>
+        </div>
+        <div id="pref-list" class="pref-list"></div>
+      </div>
+    </div>
+
     </div>
     <!-- ========== FOOT ========== -->
     <div class="foot-bar">
@@ -1387,7 +1421,7 @@
 
     // YouTube (with pagination)
     try {
-      const allVids = await fetch('/api/youtube/recommendations?limit=20').then(r=>r.json());
+      const allVids = await fetch('/api/youtube/recommendations?limit=24').then(r=>r.json());
       const PER_PAGE = 6;
       let currentPage = 1;
 
@@ -1437,6 +1471,56 @@
     initScan();
     document.querySelectorAll('.hud-stat .v').forEach((el,i)=>countUp(el,{delay:350+i*70,duration:1100}));
     document.querySelectorAll('.mail .pri-n b').forEach((el,i)=>countUp(el,{delay:700+i*50,duration:700}));
+  }
+
+  // ===== 偏好設定 =====
+  function togglePrefs(btn){
+    const body = document.getElementById('pref-body');
+    const open = body.style.display === 'none';
+    body.style.display = open ? 'block' : 'none';
+    btn.classList.toggle('open', open);
+    if(open) loadPrefs();
+  }
+
+  async function loadPrefs(){
+    try{
+      const data = await fetch('/api/youtube/prefs').then(r=>r.json());
+      const list = document.getElementById('pref-list');
+      if(!list) return;
+      if(!data.length){
+        list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;opacity:.35;padding:4px 0">尚未新增偏好影片</div>';
+        return;
+      }
+      list.innerHTML = data.map(p=>`
+        <div class="pref-item">
+          <span title="${esc(p.url)}">${esc(p.url)}</span>
+          <button class="pref-del" onclick="deletePref('${p.id}')">✕</button>
+        </div>`).join('');
+    }catch(e){}
+  }
+
+  async function savePrefs(){
+    const input = document.getElementById('pref-input');
+    const status = document.getElementById('pref-status');
+    const urls = input.value.split('\n').map(u=>u.trim()).filter(u=>u.startsWith('http'));
+    if(!urls.length){ status.textContent='請輸入有效網址'; return; }
+    status.textContent = '儲存中...';
+    let saved = 0;
+    for(const url of urls){
+      try{
+        await fetch('/api/youtube/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+        saved++;
+      }catch(e){}
+    }
+    input.value = '';
+    status.textContent = `已儲存 ${saved} 個`;
+    setTimeout(()=>{ status.textContent=''; },3000);
+    loadPrefs();
+  }
+
+  async function deletePref(id){
+    await fetch(`/api/youtube/prefs/${id}`,{method:'DELETE'});
+    loadPrefs();
   }
 
   loadData();
