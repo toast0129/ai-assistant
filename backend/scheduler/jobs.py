@@ -104,15 +104,18 @@ def job_youtube_curator():
         vid_data = next((v for v in unique if v["title"] == item.get("title")), {})
         desc = vid_data.get("description", "") or item.get("title", "")
 
-        if is_duplicate(vid_data.get("video_id", ""), "youtube_items", "video_id"):
+        vid_id = vid_data.get("video_id", "")
+        if not vid_id:
             continue
 
+        from datetime import datetime, timezone
         supabase.table("youtube_items").upsert({
-            "video_id":   vid_data.get("video_id", ""),
-            "title":      item.get("title", ""),
-            "channel":    item.get("channel", ""),
-            "url":        vid_data.get("url", ""),
-            "summary":    item.get("summary", ""),
+            "video_id":    vid_id,
+            "title":       item.get("title", ""),
+            "channel":     item.get("channel", ""),
+            "url":         vid_data.get("url", ""),
+            "summary":     item.get("summary", ""),
             "value_score": item.get("value_score", 5),
             "fit_score":   item.get("fit_score", 5),
+            "seen_at":     datetime.now(timezone.utc).isoformat(),
         }, on_conflict="video_id").execute()
