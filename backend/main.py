@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from backend.routers import github, youtube, feedback
+from backend.routers import github, youtube, feedback, cost
 from backend.scheduler.runner import start_scheduler
 from config.settings import settings
 
@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(github.router,   prefix="/api/github",   tags=["github"])
 app.include_router(youtube.router,  prefix="/api/youtube",  tags=["youtube"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
+app.include_router(cost.router,     prefix="/api/cost",     tags=["cost"])
 
 # Serve frontend static files
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
